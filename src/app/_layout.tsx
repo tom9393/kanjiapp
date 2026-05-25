@@ -1,5 +1,6 @@
 import { ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
+import * as SystemUI from 'expo-system-ui';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -18,12 +19,21 @@ export default function RootLayout() {
       .finally(() => setReady(true));
   }, []);
 
+  useEffect(() => {
+    SystemUI.setBackgroundColorAsync(navigationTheme.colors.background);
+  }, [navigationTheme.colors.background]);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider value={navigationTheme}>
         {ready ? (
-          <Stack>
-            <Stack.Screen name="index" options={{ title: 'KanjiApp' }} />
+          <Stack
+            screenOptions={{
+              animation: 'none',
+              contentStyle: { backgroundColor: navigationTheme.colors.background },
+            }}
+          >
+            <Stack.Screen name="index" options={{ title: '' }} />
             <Stack.Screen name="study" options={{ title: 'Study' }} />
             <Stack.Screen name="complete" options={{ title: 'Complete', headerBackVisible: false }} />
             <Stack.Screen name="kanji/index" options={{ title: 'Browse Kanji' }} />

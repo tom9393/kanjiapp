@@ -4,10 +4,13 @@ import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { getKanjiWithSrs, getReviewHistory, getSentencesForKanji, getWordsForKanji } from '@/data/repository';
+import { getKanjiWithSrs } from '@/data/repository/kanji';
+import { getReviewHistory } from '@/data/repository/reviews';
+import { getSentencesForKanji, getWordsForKanji } from '@/data/repository/reference';
 import { ExampleSentence, KanjiWithSrs, Review, srsOf, Word } from '@/data/types';
 import { CardState } from '@/domain/cardState';
-import { MetaChips, Readings } from '@/study/components';
+import { MetaChips } from '@/study/components/MetaChips';
+import { Readings } from '@/study/components/Readings';
 import { cardStateColors, usePalette } from '@/ui/theme';
 
 const STATE_LABEL: Record<CardState, string> = {

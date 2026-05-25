@@ -1,6 +1,6 @@
 // Ported from kanji/logic/KanjiScreenViewModel.kt (GRADE + RADICAL browse modes).
 import { create } from 'zustand';
-import { getKanjiWithSrsByCharacters, getKanjiWithSrsByGrade } from '@/data/repository';
+import { getKanjiWithSrsByCharacters, getKanjiWithSrsByGrade } from '@/data/repository/kanji';
 import { KanjiWithSrs } from '@/data/types';
 
 export type BrowseMode = 'grade' | 'radical';

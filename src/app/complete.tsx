@@ -2,7 +2,7 @@
 import { useRouter } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Btn } from '@/study/components';
+import { Btn } from '@/study/components/Btn';
 import { usePalette } from '@/ui/theme';
 
 export default function StudyComplete() {

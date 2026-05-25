@@ -1,6 +1,6 @@
 // Ported from frontpage/logic/FrontpageScreenViewModel.kt.
-import { create } from 'zustand';
 import { countDueAndNew } from '@/domain/studyQueueSource';
+import { create } from 'zustand';
 
 interface FrontpageStore {
   dueCount: number;
@@ -16,7 +16,6 @@ export const useFrontpageStore = create<FrontpageStore>((set) => ({
   extraAvailable: false,
   loading: true,
   load: async () => {
-    set({ loading: true });
     const counts = await countDueAndNew();
     set({
       dueCount: counts.dueCount,

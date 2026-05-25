@@ -5,7 +5,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { canStudy, useFrontpageStore } from '@/state/frontpageStore';
-import { Btn } from '@/study/components';
+import { Btn } from '@/study/components/Btn';
 import { usePalette } from '@/ui/theme';
 
 export default function Frontpage() {

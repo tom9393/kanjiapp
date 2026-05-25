@@ -3,6 +3,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { LoadRequest, useStudyStore } from '@/state/studyStore';
 import { StudyContent } from '@/study/StudyContent';
@@ -38,9 +39,9 @@ export default function StudyScreen() {
   }
 
   return (
-    <View style={[styles.fill, { backgroundColor: p.background }]}>
+    <SafeAreaView style={[styles.fill, { backgroundColor: p.background }]} edges={['bottom']}>
       <StudyContent />
-    </View>
+    </SafeAreaView>
   );
 }
 

@@ -1,7 +1,8 @@
 // Ported from study/logic/StudyScreenViewModel.kt (+ SessionLoader + Events) as a zustand store.
 // The View dispatches user intents by calling these actions and reacts to `status`: the
 // terminal `complete` / `empty` values drive navigation declaratively (no one-shot channel).
-import * as repo from '@/data/repository';
+import { deleteSrs, updateState } from '@/data/repository/kanji';
+import { insertReview, removeLatestReview } from '@/data/repository/reviews';
 import { srsOf } from '@/data/types';
 import { CardEase, CardState } from '@/domain/cardState';
 import { CardWithContext, Session } from '@/domain/models';
@@ -62,8 +63,8 @@ export const useStudyStore = create<StudyStore>((set, get) => {
   };
 
   const persistAnswer = async (current: CardWithContext, newSrs: ReturnType<typeof calculateNewState>, ease: CardEase) => {
-    await repo.updateState(newSrs);
-    await repo.insertReview({
+    await updateState(newSrs);
+    await insertReview({
       id: Date.now(),
       character: current.card.kanji.character,
       updateSequenceNumber: 0,
@@ -75,11 +76,11 @@ export const useStudyStore = create<StudyStore>((set, get) => {
   };
 
   const revertPersistedState = async (card: CardWithContext['card']) => {
-    await repo.removeLatestReview(card.kanji.character);
+    await removeLatestReview(card.kanji.character);
     if (card.rawSrs == null) {
-      await repo.deleteSrs(card.kanji.character);
+      await deleteSrs(card.kanji.character);
     } else {
-      await repo.updateState(srsOf(card));
+      await updateState(srsOf(card));
     }
   };
 
