@@ -1,6 +1,6 @@
 // Ported from kanji/logic/KanjiScreenViewModel.kt (GRADE + RADICAL browse modes).
 import { create } from 'zustand';
-import { getKanjiWithSrsByCharacters, getKanjiWithSrsByGrade } from '@/data/repository/kanji';
+import { getAllKanjiWithSrs, getKanjiWithSrsByCharacters } from '@/data/repository/kanji';
 import { KanjiWithSrs } from '@/data/types';
 
 export type BrowseMode = 'grade' | 'radical';
@@ -30,24 +30,22 @@ interface RadicalEntry {
 interface BrowseStore {
   mode: BrowseMode;
   selectedGrade: number;
+  allKanji: KanjiWithSrs[];
   kanji: KanjiWithSrs[];
   loading: boolean;
   radicals: RadicalEntry[] | null;
   selectedRadical: string | null;
 
   selectMode: (mode: BrowseMode) => Promise<void>;
-  selectGrade: (grade: number) => Promise<void>;
+  selectGrade: (grade: number) => void;
   selectRadical: (radical: string) => Promise<void>;
   clearRadical: () => void;
   init: () => Promise<void>;
 }
 
 export const useBrowseStore = create<BrowseStore>((set, get) => {
-  const loadGrade = async (grade: number) => {
-    set({ loading: true });
-    const kanji = await getKanjiWithSrsByGrade(grade);
-    set({ kanji, loading: false });
-  };
+  // The full list is loaded once in init(); selecting a grade just filters it.
+  const kanjiForGrade = (grade: number) => get().allKanji.filter((k) => k.kanji.grade === grade);
 
   const loadRadicals = async () => {
     if (get().radicals) return;
@@ -58,26 +56,31 @@ export const useBrowseStore = create<BrowseStore>((set, get) => {
   return {
     mode: 'grade',
     selectedGrade: 1,
+    allKanji: [],
     kanji: [],
     loading: true,
     radicals: null,
     selectedRadical: null,
 
-    init: () => loadGrade(get().selectedGrade),
+    init: async () => {
+      // Match the old per-grade query's frequency ordering, then filter in memory.
+      const allKanji = (await getAllKanjiWithSrs()).sort((a, b) => a.kanji.frequency - b.kanji.frequency);
+      set({ allKanji, loading: false });
+      set({ kanji: kanjiForGrade(get().selectedGrade) });
+    },
 
     selectMode: async (mode) => {
       if (get().mode === mode) return;
       set({ mode, selectedRadical: null });
       if (mode === 'grade') {
-        await loadGrade(get().selectedGrade);
+        set({ kanji: kanjiForGrade(get().selectedGrade) });
       } else {
         await loadRadicals();
       }
     },
 
-    selectGrade: async (grade) => {
-      set({ selectedGrade: grade });
-      await loadGrade(grade);
+    selectGrade: (grade) => {
+      set({ selectedGrade: grade, kanji: kanjiForGrade(grade) });
     },
 
     selectRadical: async (radical) => {

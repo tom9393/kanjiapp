@@ -18,12 +18,6 @@ export async function getCharacterByYearWithSrs(year: number): Promise<KanjiWith
   return rows.map(mapKanjiWithSrs);
 }
 
-export async function getKanjiWithSrsByGrade(grade: number): Promise<KanjiWithSrs[]> {
-  const db = await getDb();
-  const rows = await db.getAllAsync<any>(`${JOIN_SELECT} WHERE k.grade = ? ORDER BY k.frequency`, [grade]);
-  return rows.map(mapKanjiWithSrs);
-}
-
 export async function getKanjiWithSrs(character: string): Promise<KanjiWithSrs | null> {
   const db = await getDb();
   const row = await db.getFirstAsync<any>(`${JOIN_SELECT} WHERE k.character = ?`, [character]);
