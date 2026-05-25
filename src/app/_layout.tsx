@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { ensureDbReady } from '@/data/init';
 import { useThemeStore } from '@/state/themeStore';
+import { AppHeader } from '@/ui/AppHeader';
 import { useNavigationTheme } from '@/ui/theme';
 
 export default function RootLayout() {
@@ -30,6 +31,7 @@ export default function RootLayout() {
           <Stack
             screenOptions={{
               animation: 'none',
+              header: (props) => <AppHeader {...props} />,
               contentStyle: { backgroundColor: navigationTheme.colors.background },
             }}
           >
