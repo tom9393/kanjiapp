@@ -1,39 +1,18 @@
 // Ported from study/logic/StudyScreenViewModel.kt (+ SessionLoader + Events) as a zustand store.
 // The View dispatches user intents by calling these actions and reacts to `status`: the
 // terminal `complete` / `empty` values drive navigation declaratively (no one-shot channel).
-import { deleteSrs, updateState } from '@/data/repository/kanji';
-import { insertReview, removeLatestReview } from '@/data/repository/reviews';
+import { eraseAnswer, recordAnswer } from '@/data/repository/srsActions';
 import { srsOf } from '@/data/types';
 import { CardEase, CardState } from '@/domain/cardState';
 import { CardWithContext, Session } from '@/domain/models';
 import { calculateNewState } from '@/domain/scheduler';
-import { afterAnswer, canUndo, currentCard, isComplete, undoLast } from '@/domain/session';
 import * as queue from '@/domain/studyQueueSource';
-import * as settings from '@/settings/settingsProvider';
 import { create } from 'zustand';
-
-// SessionState.Active fields. Loading state is represented separately in the store.
-// Per-card reveal, session settings, and stroke width are view concerns loaded by the
-// components that consume them, so they don't live here.
-export interface ActiveSession {
-  session: Session;
-}
 
 export type LoadRequest =
   | { kind: 'dueAndNew' }
   | { kind: 'year'; year: number }
   | { kind: 'extra'; n: number };
-
-interface StudyStore {
-  // `complete` / `empty` are terminal: the screen navigates away when it sees them.
-  status: 'loading' | 'active' | 'complete' | 'empty';
-  active: ActiveSession | null;
-
-  start: (req: LoadRequest) => Promise<void>;
-  submitAnswer: (ease: CardEase) => Promise<void>;
-  undo: () => Promise<void>;
-  canUndoCurrent: () => boolean;
-}
 
 async function loadCards(req: LoadRequest): Promise<CardWithContext[]> {
   switch (req.kind) {
@@ -46,25 +25,42 @@ async function loadCards(req: LoadRequest): Promise<CardWithContext[]> {
   }
 }
 
-export const useStudyStore = create<StudyStore>((set, get) => {
-  const updateActive = (fn: (a: ActiveSession) => ActiveSession) => {
-    const a = get().active;
-    if (!a) return;
-    set({ active: fn(a) });
-  };
+interface StudyStore {
+  // `complete` / `empty` are terminal: the screen navigates away when it sees them.
+  status: 'loading' | 'active' | 'complete' | 'empty';
+  active: Session | null;
 
-  // Advance the active view to `session`. A drained queue is the terminal `complete` status.
-  const showSession = (session: Session) => {
-    if (isComplete(session)) {
-      set({ status: 'complete' });
+  start: (req: LoadRequest) => Promise<void>;
+  submitAnswer: (ease: CardEase) => Promise<void>;
+  undo: () => Promise<void>;
+  canUndoCurrent: () => boolean;
+}
+
+export const useStudyStore = create<StudyStore>((set, get) => ({
+  status: 'loading',
+  active: null,
+
+  start: async (req) => {
+    set({ status: 'loading', active: null });
+    const cards = await loadCards(req);
+    if (cards.length === 0) {
+      set({ status: 'empty' });
       return;
     }
-    updateActive((a) => ({ ...a, session }));
-  };
+    set({
+      status: 'active',
+      active: { queue: cards, history: [] },
+    });
+  },
 
-  const persistAnswer = async (current: CardWithContext, newSrs: ReturnType<typeof calculateNewState>, ease: CardEase) => {
-    await updateState(newSrs);
-    await insertReview({
+  submitAnswer: async (ease) => {
+    const active = get().active;
+    if (!active) return;
+    const current = active.queue[0] ?? null;
+    if (!current) return;
+
+    const newSrs = await calculateNewState(srsOf(current.card), ease);
+    await recordAnswer(newSrs, {
       id: Date.now(),
       character: current.card.kanji.character,
       updateSequenceNumber: 0,
@@ -73,67 +69,51 @@ export const useStudyStore = create<StudyStore>((set, get) => {
       factor: newSrs.factor,
       ease,
     });
-  };
 
-  const revertPersistedState = async (card: CardWithContext['card']) => {
-    await removeLatestReview(card.kanji.character);
-    if (card.rawSrs == null) {
-      await deleteSrs(card.kanji.character);
-    } else {
-      await updateState(srsOf(card));
+    const wasShifted = ease === CardEase.Again;
+    const remaining = active.queue.slice(1);
+    const nextSession: Session = {
+      queue: wasShifted ? [...remaining, current] : remaining,
+      history: [...active.history, { originalCard: current, wasShifted }],
+    };
+    if (nextSession.queue.length === 0 && nextSession.history.length > 0) {
+      set({ status: 'complete' });
+      return;
     }
-  };
+    set({ active: nextSession });
+  },
 
-  return {
-    status: 'loading',
-    active: null,
+  undo: async () => {
+    const active = get().active;
+    if (!active || !get().canUndoCurrent()) return;
 
-    start: async (req) => {
-      set({ status: 'loading', active: null });
-      const cards = await loadCards(req);
-      if (cards.length === 0) {
-        set({ status: 'empty' });
-        return;
-      }
-      set({
-        status: 'active',
-        active: { session: { queue: cards, history: [] } },
-      });
-    },
+    const last = active.history[active.history.length - 1];
+    const restored: Session = {
+      queue: [last.originalCard, ...(last.wasShifted ? active.queue.slice(0, -1) : active.queue)],
+      history: active.history.slice(0, -1),
+    };
 
-    submitAnswer: async (ease) => {
-      const active = get().active;
-      if (!active) return;
-      const current = currentCard(active.session);
-      if (!current) return;
+    const card = last.originalCard.card;
+    await eraseAnswer(card.kanji.character, card.rawSrs);
 
-      const config = await settings.getSnapshot();
-      const newSrs = calculateNewState(srsOf(current.card), ease, config);
-      await persistAnswer(current, newSrs, ease);
+    if (restored.queue.length === 0 && restored.history.length > 0) {
+      set({ status: 'complete' });
+      return;
+    }
+    set({ active: restored });
+  },
 
-      showSession(afterAnswer(active.session, current, ease));
-    },
-
-    undo: async () => {
-      const active = get().active;
-      if (!active || !get().canUndoCurrent()) return;
-      const [restored, undone] = undoLast(active.session);
-      await revertPersistedState(undone.originalCard.card);
-      showSession(restored);
-    },
-
-    canUndoCurrent: () => {
-      const a = get().active;
-      if (!a) return false;
-      const c = currentCard(a.session);
-      return canUndo(a.session) && !!c && srsOf(c.card).type === CardState.REVIEW;
-    },
-  };
-});
+  canUndoCurrent: () => {
+    const a = get().active;
+    if (!a) return false;
+    const c = a.queue[0] ?? null;
+    return a.history.length > 0 && !!c && srsOf(c.card).type === CardState.REVIEW;
+  },
+}));
 
 // Selector hook for the current card. Only called from StudyContent, which the screen
 // renders solely while `status === 'active'`, so `active` (and a current card) are always
 // present — the non-null assertions pin that invariant to one place.
 export function useCurrentCard(): CardWithContext {
-  return useStudyStore((s) => currentCard(s.active!.session)!);
+  return useStudyStore((s) => s.active!.queue[0]!);
 }

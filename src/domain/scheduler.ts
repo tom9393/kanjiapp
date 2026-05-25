@@ -1,7 +1,7 @@
 // SM-2 variant scheduler ported from study/logic/Scheduler.kt.
-// Takes a config snapshot rather than injecting a settings provider, keeping it pure.
 import { Srs } from '@/data/types';
 import { CardEase, CardState } from './cardState';
+import { getSnapshot } from '@/settings/settingsProvider';
 
 export interface StudyConfigSnapshot {
   newCardsLimit: number;
@@ -18,12 +18,12 @@ export interface StudyConfigSnapshot {
   relearningGoodSecs: number;
 }
 
-export function calculateNewState(
+export async function calculateNewState(
   current: Srs,
   ease: CardEase,
-  config: StudyConfigSnapshot,
   now: number = Math.floor(Date.now() / 1000),
-): Srs {
+): Promise<Srs> {
+  const config = await getSnapshot();
   const state = current.type;
   const actualState = state === CardState.NEW ? CardState.LEARNING : state;
   const initialFactor = state === CardState.NEW ? config.startingEase : current.factor;
