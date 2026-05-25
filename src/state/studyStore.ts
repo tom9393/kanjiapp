@@ -1,6 +1,6 @@
 // Ported from study/logic/StudyScreenViewModel.kt (+ SessionLoader + Events) as a zustand store.
-// The View dispatches user intents by calling these actions and reacts to `status`: the
-// terminal `complete` / `empty` values drive navigation declaratively (no one-shot channel).
+// The View dispatches user intents by calling these actions and reacts to derived status:
+// null active → loading, non-null with cards → active, empty queue → complete.
 import { eraseAnswer, recordAnswer } from '@/data/repository/srsActions';
 import { srsOf } from '@/data/types';
 import { CardEase, CardState } from '@/domain/cardState';
@@ -26,8 +26,6 @@ async function loadCards(req: LoadRequest): Promise<CardWithContext[]> {
 }
 
 interface StudyStore {
-  // `complete` / `empty` are terminal: the screen navigates away when it sees them.
-  status: 'loading' | 'active' | 'complete' | 'empty';
   active: Session | null;
 
   start: (req: LoadRequest) => Promise<void>;
@@ -37,20 +35,13 @@ interface StudyStore {
 }
 
 export const useStudyStore = create<StudyStore>((set, get) => ({
-  status: 'loading',
   active: null,
 
   start: async (req) => {
-    set({ status: 'loading', active: null });
+    set({ active: null });
     const cards = await loadCards(req);
-    if (cards.length === 0) {
-      set({ status: 'empty' });
-      return;
-    }
-    set({
-      status: 'active',
-      active: { queue: cards, history: [] },
-    });
+    if (cards.length === 0) return;
+    set({ active: { queue: cards, history: [] } });
   },
 
   submitAnswer: async (ease) => {
@@ -72,15 +63,12 @@ export const useStudyStore = create<StudyStore>((set, get) => ({
 
     const wasShifted = ease === CardEase.Again;
     const remaining = active.queue.slice(1);
-    const nextSession: Session = {
-      queue: wasShifted ? [...remaining, current] : remaining,
-      history: [...active.history, { originalCard: current, wasShifted }],
-    };
-    if (nextSession.queue.length === 0 && nextSession.history.length > 0) {
-      set({ status: 'complete' });
-      return;
-    }
-    set({ active: nextSession });
+    set({
+      active: {
+        queue: wasShifted ? [...remaining, current] : remaining,
+        history: [...active.history, { originalCard: current, wasShifted }],
+      },
+    });
   },
 
   undo: async () => {
@@ -96,10 +84,6 @@ export const useStudyStore = create<StudyStore>((set, get) => ({
     const card = last.originalCard.card;
     await eraseAnswer(card.kanji.character, card.rawSrs);
 
-    if (restored.queue.length === 0 && restored.history.length > 0) {
-      set({ status: 'complete' });
-      return;
-    }
     set({ active: restored });
   },
 
@@ -111,9 +95,16 @@ export const useStudyStore = create<StudyStore>((set, get) => ({
   },
 }));
 
-// Selector hook for the current card. Only called from StudyContent, which the screen
-// renders solely while `status === 'active'`, so `active` (and a current card) are always
-// present — the non-null assertions pin that invariant to one place.
+export function useStudyStatus(): 'loading' | 'active' | 'complete' {
+  return useStudyStore((s) => {
+    if (s.active === null) return 'loading';
+    if (s.active.queue.length === 0) return 'complete';
+    return 'active';
+  });
+}
+
+// Only called from StudyContent, rendered solely while status === 'active', so active and
+// a current card are always present — the non-null assertions pin that invariant to one place.
 export function useCurrentCard(): CardWithContext {
   return useStudyStore((s) => s.active!.queue[0]!);
 }

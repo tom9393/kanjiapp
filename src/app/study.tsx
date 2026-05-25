@@ -1,11 +1,11 @@
 // Ported from study/view/StudyScreen.kt. Loads a session from the route params, dispatches
-// to StudyContent by phase, and navigates when the store reaches a terminal status.
+// to StudyContent by phase, and navigates when the store reaches the complete status.
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { LoadRequest, useStudyStore } from '@/state/studyStore';
+import { LoadRequest, useStudyStatus, useStudyStore } from '@/state/studyStore';
 import { StudyContent } from '@/study/StudyContent';
 import { usePalette } from '@/ui/theme';
 
@@ -14,20 +14,18 @@ export default function StudyScreen() {
   const params = useLocalSearchParams<{ year?: string; extra?: string }>();
   const p = usePalette();
 
-  const status = useStudyStore((s) => s.status);
+  const status = useStudyStatus();
 
   useEffect(() => {
     const year = Number(params.year ?? 0);
     const extra = Number(params.extra ?? 0);
-    const req: LoadRequest =
-      year > 0 ? { kind: 'year', year } : extra > 0 ? { kind: 'extra', n: extra } : { kind: 'dueAndNew' };
+    const req: LoadRequest = year > 0 ? { kind: 'year', year } : extra > 0 ? { kind: 'extra', n: extra } : { kind: 'dueAndNew' };
     // Read the action off the store rather than subscribing, so this runs once on mount.
     useStudyStore.getState().start(req);
   }, [params.year, params.extra]);
 
   useEffect(() => {
     if (status === 'complete') router.replace('/complete');
-    else if (status === 'empty') router.back();
   }, [status, router]);
 
   if (status !== 'active') {
