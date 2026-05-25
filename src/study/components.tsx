@@ -6,6 +6,9 @@ import Svg, { Line, Path, Polyline } from 'react-native-svg';
 import { getStrokes } from '@/data/repository';
 import { ExampleSentence, Kanji } from '@/data/types';
 import { CardEase } from '@/domain/cardState';
+import { Prefs } from '@/settings/preferences';
+import { getStrokeWidth } from '@/settings/settingsProvider';
+import { useSetting } from '@/settings/useSetting';
 import { usePalette } from '@/ui/theme';
 
 interface Point {
@@ -173,8 +176,9 @@ export function AnswerButtons({ onAnswer }: { onAnswer: (ease: CardEase) => void
  * rest of the app never reads, so they don't belong in the session store. Mount with a
  * `key` tied to the card/round to reset between prompts (see StudyContent).
  */
-export function DrawingArea({ strokeWidth }: { strokeWidth: number }) {
+export function DrawingArea() {
   const p = usePalette();
+  const strokeWidth = useSetting(getStrokeWidth) ?? Prefs.strokeWidth.default;
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [completedStrokes, setCompletedStrokes] = useState<Point[][]>([]);
   const [currentStroke, setCurrentStroke] = useState<Point[]>([]);

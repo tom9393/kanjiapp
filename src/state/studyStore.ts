@@ -11,20 +11,11 @@ import * as queue from '@/domain/studyQueueSource';
 import * as settings from '@/settings/settingsProvider';
 import { create } from 'zustand';
 
-// Session settings + active-session types, owned here because the store is their only
-// consumer (ported from study/logic/StudyModels.kt). The learning phase and review mode are
-// derived from the current card by the view, so they don't live here.
-export interface SessionSettings {
-  learningReps: number;
-  enabledModes: settings.StudyModesSnapshot;
-}
-
 // SessionState.Active fields. Loading state is represented separately in the store.
+// Per-card reveal, session settings, and stroke width are view concerns loaded by the
+// components that consume them, so they don't live here.
 export interface ActiveSession {
   session: Session;
-  isRevealed: boolean;
-  sessionSettings: SessionSettings;
-  strokeWidth: number;
 }
 
 export type LoadRequest =
@@ -39,17 +30,8 @@ interface StudyStore {
 
   start: (req: LoadRequest) => Promise<void>;
   submitAnswer: (ease: CardEase) => Promise<void>;
-  reveal: () => void;
   undo: () => Promise<void>;
   canUndoCurrent: () => boolean;
-}
-
-async function loadSessionSettings(): Promise<SessionSettings> {
-  const [learningReps, enabledModes] = await Promise.all([
-    settings.getLearningRepetitions(),
-    settings.getStudyModes(),
-  ]);
-  return { learningReps, enabledModes };
 }
 
 async function loadCards(req: LoadRequest): Promise<CardWithContext[]> {
@@ -64,27 +46,19 @@ async function loadCards(req: LoadRequest): Promise<CardWithContext[]> {
 }
 
 export const useStudyStore = create<StudyStore>((set, get) => {
-  const showSession = (session: Session, sessionSettings: SessionSettings, strokeWidth: number) => {
-    if (isComplete(session)) {
-      set({ status: 'complete' });
-      return;
-    }
-    if (!currentCard(session)) return;
-    set({
-      status: 'active',
-      active: {
-        session,
-        isRevealed: false,
-        sessionSettings,
-        strokeWidth,
-      },
-    });
-  };
-
   const updateActive = (fn: (a: ActiveSession) => ActiveSession) => {
     const a = get().active;
     if (!a) return;
     set({ active: fn(a) });
+  };
+
+  // Advance the active view to `session`. A drained queue is the terminal `complete` status.
+  const showSession = (session: Session) => {
+    if (isComplete(session)) {
+      set({ status: 'complete' });
+      return;
+    }
+    updateActive((a) => ({ ...a, session }));
   };
 
   const persistAnswer = async (current: CardWithContext, newSrs: ReturnType<typeof calculateNewState>, ease: CardEase) => {
@@ -115,14 +89,15 @@ export const useStudyStore = create<StudyStore>((set, get) => {
 
     start: async (req) => {
       set({ status: 'loading', active: null });
-      const sessionSettings = await loadSessionSettings();
-      const strokeWidth = await settings.getStrokeWidth();
       const cards = await loadCards(req);
       if (cards.length === 0) {
         set({ status: 'empty' });
         return;
       }
-      showSession({ queue: cards, history: [] }, sessionSettings, strokeWidth);
+      set({
+        status: 'active',
+        active: { session: { queue: cards, history: [] } },
+      });
     },
 
     submitAnswer: async (ease) => {
@@ -135,17 +110,15 @@ export const useStudyStore = create<StudyStore>((set, get) => {
       const newSrs = calculateNewState(srsOf(current.card), ease, config);
       await persistAnswer(current, newSrs, ease);
 
-      showSession(afterAnswer(active.session, current, ease), active.sessionSettings, active.strokeWidth);
+      showSession(afterAnswer(active.session, current, ease));
     },
-
-    reveal: () => updateActive((a) => ({ ...a, isRevealed: true })),
 
     undo: async () => {
       const active = get().active;
       if (!active || !get().canUndoCurrent()) return;
       const [restored, undone] = undoLast(active.session);
       await revertPersistedState(undone.originalCard.card);
-      showSession(restored, active.sessionSettings, active.strokeWidth);
+      showSession(restored);
     },
 
     canUndoCurrent: () => {
@@ -157,13 +130,9 @@ export const useStudyStore = create<StudyStore>((set, get) => {
   };
 });
 
-// Selector hooks for the active session. Only called from StudyContent, which the screen
+// Selector hook for the current card. Only called from StudyContent, which the screen
 // renders solely while `status === 'active'`, so `active` (and a current card) are always
 // present — the non-null assertions pin that invariant to one place.
-export function useActiveSession<T>(selector: (a: ActiveSession) => T): T {
-  return useStudyStore((s) => selector(s.active!));
-}
-
 export function useCurrentCard(): CardWithContext {
   return useStudyStore((s) => currentCard(s.active!.session)!);
 }
