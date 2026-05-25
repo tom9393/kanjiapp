@@ -1,10 +1,11 @@
 // Ported from study/view: StudyingContent, ReviewWritingContent, ReviewReadingContent,
-// LearningContent (+ Presentation/Practice/Rating). Dispatches on the active learning phase.
-import React, { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { currentCard } from '@/domain/session';
-import { ActiveSession, CardWithContext } from '@/domain/models';
-import { useStudyStore } from '@/state/studyStore';
+// LearningContent (+ Presentation/Practice/Rating). The current card's SRS state selects the
+// flow; review mode and the learning-phase progression are local view state.
+import { srsOf } from '@/data/types';
+import { CardState } from '@/domain/cardState';
+import { CardWithContext } from '@/domain/models';
+import type { StudyModesSnapshot } from '@/settings/settingsProvider';
+import { useActiveSession, useCurrentCard, useStudyStore } from '@/state/studyStore';
 import {
   AnswerButtons,
   Btn,
@@ -16,24 +17,63 @@ import {
   StrokeOrderDiagram,
 } from '@/study/components';
 import { usePalette } from '@/ui/theme';
+import React, { useMemo, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-export function StudyContent({ active }: { active: ActiveSession }) {
-  const card = currentCard(active.session);
-  if (!card) return null;
+type StudyMode = 'handwriting' | 'reading';
 
-  switch (active.learningPhase.kind) {
-    case 'reviewing':
-      return active.learningPhase.mode === 'reading' ? (
-        <ReviewReading active={active} card={card} />
-      ) : (
-        <ReviewWriting active={active} card={card} />
-      );
+// Review cards get a randomly chosen mode among those enabled; reading needs example words.
+function pickReviewMode(card: CardWithContext, modes: StudyModesSnapshot): StudyMode {
+  const readingAvailable = modes.reading && card.examples.length > 0;
+  if (modes.handwriting && readingAvailable) {
+    return Math.random() < 0.5 ? 'handwriting' : 'reading';
+  }
+  return readingAvailable ? 'reading' : 'handwriting';
+}
+
+export function StudyContent() {
+  const character = useCurrentCard().card.kanji.character;
+  // Remount per card so review mode and the learning phase reset when the card advances.
+  return <CardFlow key={character} />;
+}
+
+function CardFlow() {
+  const card = useCurrentCard();
+  return srsOf(card.card).type === CardState.REVIEW ? <Review /> : <Learning />;
+}
+
+function Review() {
+  const card = useCurrentCard();
+  const modes = useActiveSession((a) => a.sessionSettings.enabledModes);
+  // Picked once on mount; StudyContent remounts this per card.
+  const [mode] = useState(() => pickReviewMode(card, modes));
+  return mode === 'reading' ? <ReviewReading /> : <ReviewWriting />;
+}
+
+type LearningStep =
+  | { kind: 'presentation' }
+  | { kind: 'practice'; round: number }
+  | { kind: 'rating' };
+
+function Learning() {
+  const total = useActiveSession((a) => a.sessionSettings.learningReps);
+  const [step, setStep] = useState<LearningStep>({ kind: 'presentation' });
+
+  switch (step.kind) {
     case 'presentation':
-      return <Presentation card={card} />;
+      return <Presentation onBegin={() => setStep({ kind: 'practice', round: 1 })} />;
     case 'practice':
-      return <Practice active={active} card={card} round={active.learningPhase.round} total={active.learningPhase.total} />;
+      return (
+        <Practice
+          round={step.round}
+          total={total}
+          onNext={() =>
+            setStep(step.round < total ? { kind: 'practice', round: step.round + 1 } : { kind: 'rating' })
+          }
+        />
+      );
     case 'rating':
-      return <Rating card={card} />;
+      return <Rating />;
   }
 }
 
@@ -47,7 +87,10 @@ function PromptHeader({ label, children }: { label: string; children?: React.Rea
   );
 }
 
-function ReviewWriting({ active, card }: { active: ActiveSession; card: CardWithContext }) {
+function ReviewWriting() {
+  const card = useCurrentCard();
+  const isRevealed = useActiveSession((a) => a.isRevealed);
+  const strokeWidth = useActiveSession((a) => a.strokeWidth);
   const reveal = useStudyStore((s) => s.reveal);
   const undo = useStudyStore((s) => s.undo);
   const submitAnswer = useStudyStore((s) => s.submitAnswer);
@@ -57,7 +100,7 @@ function ReviewWriting({ active, card }: { active: ActiveSession; card: CardWith
 
   return (
     <View style={styles.fill}>
-      {active.isRevealed && (
+      {isRevealed && (
         <RevealOverlay kanji={card.card.kanji} sentence={target?.sentence ?? null} onAnswer={submitAnswer} />
       )}
 
@@ -78,7 +121,7 @@ function ReviewWriting({ active, card }: { active: ActiveSession; card: CardWith
         </PromptHeader>
       )}
 
-      <DrawingArea key={card.card.kanji.character} strokeWidth={active.strokeWidth} />
+      <DrawingArea key={card.card.kanji.character} strokeWidth={strokeWidth} />
 
       <View style={styles.bottomRow}>
         <Btn label="Undo" variant="outlined" onPress={undo} disabled={!canUndoCurrent()} />
@@ -88,7 +131,10 @@ function ReviewWriting({ active, card }: { active: ActiveSession; card: CardWith
   );
 }
 
-function ReviewReading({ active, card }: { active: ActiveSession; card: CardWithContext }) {
+function ReviewReading() {
+  const card = useCurrentCard();
+  const isRevealed = useActiveSession((a) => a.isRevealed);
+  const strokeWidth = useActiveSession((a) => a.strokeWidth);
   const reveal = useStudyStore((s) => s.reveal);
   const undo = useStudyStore((s) => s.undo);
   const submitAnswer = useStudyStore((s) => s.submitAnswer);
@@ -101,7 +147,7 @@ function ReviewReading({ active, card }: { active: ActiveSession; card: CardWith
 
   return (
     <View style={styles.fill}>
-      {active.isRevealed && (
+      {isRevealed && (
         <RevealOverlay kanji={card.card.kanji} sentence={target?.sentence ?? null} onAnswer={submitAnswer} />
       )}
 
@@ -110,7 +156,7 @@ function ReviewReading({ active, card }: { active: ActiveSession; card: CardWith
         {target && <SentenceCard sentence={target.sentence} />}
       </PromptHeader>
 
-      <DrawingArea key={card.card.kanji.character} strokeWidth={active.strokeWidth} />
+      <DrawingArea key={card.card.kanji.character} strokeWidth={strokeWidth} />
 
       <View style={styles.bottomRow}>
         <Btn label="Undo" variant="outlined" onPress={undo} disabled={!canUndoCurrent()} />
@@ -120,8 +166,8 @@ function ReviewReading({ active, card }: { active: ActiveSession; card: CardWith
   );
 }
 
-function Presentation({ card }: { card: CardWithContext }) {
-  const beginPractice = useStudyStore((s) => s.beginPractice);
+function Presentation({ onBegin }: { onBegin: () => void }) {
+  const card = useCurrentCard();
   const p = usePalette();
   const kanji = card.card.kanji;
   const sentence = card.examples[0]?.sentence ?? null;
@@ -139,23 +185,14 @@ function Presentation({ card }: { card: CardWithContext }) {
           <StrokeOrderDiagram character={kanji.character} />
         </View>
       </ScrollView>
-      <Btn label="Begin Practice" onPress={beginPractice} style={{ marginTop: 8 }} />
+      <Btn label="Begin Practice" onPress={onBegin} style={{ marginTop: 8 }} />
     </View>
   );
 }
 
-function Practice({
-  active,
-  card,
-  round,
-  total,
-}: {
-  active: ActiveSession;
-  card: CardWithContext;
-  round: number;
-  total: number;
-}) {
-  const practiceRoundComplete = useStudyStore((s) => s.practiceRoundComplete);
+function Practice({ round, total, onNext }: { round: number; total: number; onNext: () => void }) {
+  const card = useCurrentCard();
+  const strokeWidth = useActiveSession((a) => a.strokeWidth);
   const submitAnswer = useStudyStore((s) => s.submitAnswer);
   const p = usePalette();
   const kanji = card.card.kanji;
@@ -173,7 +210,7 @@ function Practice({
         </View>
       </View>
 
-      <DrawingArea key={`${kanji.character}-${round}-${clearNonce}`} strokeWidth={active.strokeWidth} />
+      <DrawingArea key={`${kanji.character}-${round}-${clearNonce}`} strokeWidth={strokeWidth} />
 
       <Text style={[styles.roundLabel, { color: p.textSecondary }]}>
         Round {round} of {total}
@@ -184,14 +221,15 @@ function Practice({
       ) : (
         <View style={styles.bottomRow}>
           <Btn label="Clear" variant="outlined" onPress={() => setClearNonce((n) => n + 1)} />
-          <Btn label="Next" onPress={practiceRoundComplete} style={styles.flex1} />
+          <Btn label="Next" onPress={onNext} style={styles.flex1} />
         </View>
       )}
     </View>
   );
 }
 
-function Rating({ card }: { card: CardWithContext }) {
+function Rating() {
+  const card = useCurrentCard();
   const submitAnswer = useStudyStore((s) => s.submitAnswer);
   const p = usePalette();
   const kanji = card.card.kanji;

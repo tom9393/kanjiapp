@@ -6,8 +6,12 @@ import Svg, { Line, Path, Polyline } from 'react-native-svg';
 import { getStrokes } from '@/data/repository';
 import { ExampleSentence, Kanji } from '@/data/types';
 import { CardEase } from '@/domain/cardState';
-import { Point } from '@/domain/models';
 import { usePalette } from '@/ui/theme';
+
+interface Point {
+  x: number;
+  y: number;
+}
 
 export function Btn({
   label,

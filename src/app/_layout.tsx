@@ -22,12 +22,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider value={navigationTheme}>
         {ready ? (
-          <Stack
-          screenOptions={{
-            // This explicitly turns off all screen transition animations
-            animation: 'none', 
-          }}
-          >
+          <Stack>
             <Stack.Screen name="index" options={{ title: 'KanjiApp' }} />
             <Stack.Screen name="study" options={{ title: 'Study' }} />
             <Stack.Screen name="complete" options={{ title: 'Complete', headerBackVisible: false }} />

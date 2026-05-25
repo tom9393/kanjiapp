@@ -14,7 +14,6 @@ export default function StudyScreen() {
   const p = usePalette();
 
   const status = useStudyStore((s) => s.status);
-  const active = useStudyStore((s) => s.active);
 
   useEffect(() => {
     const year = Number(params.year ?? 0);
@@ -30,7 +29,7 @@ export default function StudyScreen() {
     else if (status === 'empty') router.back();
   }, [status, router]);
 
-  if (status !== 'active' || !active) {
+  if (status !== 'active') {
     return (
       <View style={[styles.center, { backgroundColor: p.background }]}>
         <ActivityIndicator />
@@ -40,7 +39,7 @@ export default function StudyScreen() {
 
   return (
     <View style={[styles.fill, { backgroundColor: p.background }]}>
-      <StudyContent active={active} />
+      <StudyContent />
     </View>
   );
 }

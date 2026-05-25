@@ -4,8 +4,12 @@
 // port reproduces getSnapshot()'s correct mapping.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StudyConfigSnapshot } from '@/domain/scheduler';
-import { StudyModesSnapshot } from '@/domain/models';
 import { BoolPref, NumberPref, Prefs } from './preferences';
+
+export interface StudyModesSnapshot {
+  handwriting: boolean;
+  reading: boolean;
+}
 
 export async function getNumber(pref: NumberPref): Promise<number> {
   const raw = await AsyncStorage.getItem(pref.key);

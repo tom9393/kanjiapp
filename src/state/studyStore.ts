@@ -1,24 +1,31 @@
 // Ported from study/logic/StudyScreenViewModel.kt (+ SessionLoader + Events) as a zustand store.
 // The View dispatches user intents by calling these actions and reacts to `status`: the
 // terminal `complete` / `empty` values drive navigation declaratively (no one-shot channel).
-import { create } from 'zustand';
 import * as repo from '@/data/repository';
 import { srsOf } from '@/data/types';
 import { CardEase, CardState } from '@/domain/cardState';
-import {
-  ActiveSession,
-  CardWithContext,
-  LearningPhase,
-  nextPracticeRound,
-  Session,
-  SessionSettings,
-  StudyMode,
-  StudyModesSnapshot,
-} from '@/domain/models';
+import { CardWithContext, Session } from '@/domain/models';
 import { calculateNewState } from '@/domain/scheduler';
 import { afterAnswer, canUndo, currentCard, isComplete, undoLast } from '@/domain/session';
 import * as queue from '@/domain/studyQueueSource';
 import * as settings from '@/settings/settingsProvider';
+import { create } from 'zustand';
+
+// Session settings + active-session types, owned here because the store is their only
+// consumer (ported from study/logic/StudyModels.kt). The learning phase and review mode are
+// derived from the current card by the view, so they don't live here.
+export interface SessionSettings {
+  learningReps: number;
+  enabledModes: settings.StudyModesSnapshot;
+}
+
+// SessionState.Active fields. Loading state is represented separately in the store.
+export interface ActiveSession {
+  session: Session;
+  isRevealed: boolean;
+  sessionSettings: SessionSettings;
+  strokeWidth: number;
+}
 
 export type LoadRequest =
   | { kind: 'dueAndNew' }
@@ -33,23 +40,8 @@ interface StudyStore {
   start: (req: LoadRequest) => Promise<void>;
   submitAnswer: (ease: CardEase) => Promise<void>;
   reveal: () => void;
-  beginPractice: () => void;
-  practiceRoundComplete: () => void;
   undo: () => Promise<void>;
   canUndoCurrent: () => boolean;
-}
-
-function pickReviewMode(card: CardWithContext, modes: StudyModesSnapshot): StudyMode {
-  const readingAvailable = modes.reading && card.examples.length > 0;
-  if (modes.handwriting && readingAvailable) {
-    return Math.random() < 0.5 ? 'handwriting' : 'reading';
-  }
-  return readingAvailable ? 'reading' : 'handwriting';
-}
-
-function initialPhaseFor(card: CardWithContext, modes: StudyModesSnapshot): LearningPhase {
-  if (srsOf(card.card).type !== CardState.REVIEW) return { kind: 'presentation' };
-  return { kind: 'reviewing', mode: pickReviewMode(card, modes) };
 }
 
 async function loadSessionSettings(): Promise<SessionSettings> {
@@ -77,14 +69,12 @@ export const useStudyStore = create<StudyStore>((set, get) => {
       set({ status: 'complete' });
       return;
     }
-    const card = currentCard(session);
-    if (!card) return;
+    if (!currentCard(session)) return;
     set({
       status: 'active',
       active: {
         session,
         isRevealed: false,
-        learningPhase: initialPhaseFor(card, sessionSettings.enabledModes),
         sessionSettings,
         strokeWidth,
       },
@@ -150,18 +140,6 @@ export const useStudyStore = create<StudyStore>((set, get) => {
 
     reveal: () => updateActive((a) => ({ ...a, isRevealed: true })),
 
-    beginPractice: () =>
-      updateActive((a) => ({
-        ...a,
-        learningPhase: { kind: 'practice', round: 1, total: a.sessionSettings.learningReps },
-      })),
-
-    practiceRoundComplete: () =>
-      updateActive((a) => {
-        if (a.learningPhase.kind !== 'practice') return a;
-        return { ...a, learningPhase: nextPracticeRound(a.learningPhase) };
-      }),
-
     undo: async () => {
       const active = get().active;
       if (!active || !get().canUndoCurrent()) return;
@@ -178,3 +156,14 @@ export const useStudyStore = create<StudyStore>((set, get) => {
     },
   };
 });
+
+// Selector hooks for the active session. Only called from StudyContent, which the screen
+// renders solely while `status === 'active'`, so `active` (and a current card) are always
+// present — the non-null assertions pin that invariant to one place.
+export function useActiveSession<T>(selector: (a: ActiveSession) => T): T {
+  return useStudyStore((s) => selector(s.active!));
+}
+
+export function useCurrentCard(): CardWithContext {
+  return useStudyStore((s) => currentCard(s.active!.session)!);
+}
