@@ -4,12 +4,12 @@ import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { radicals, RadicalEntry } from '@/data/radicals';
+import { RadicalEntry, radicals } from '@/data/radicals';
 import { getKanjiWithSrsByCharacters } from '@/data/repository/kanji';
 import { KanjiWithSrs, srsOf } from '@/data/types';
 import { cardStateColors, usePalette } from '@/ui/theme';
 
-const TOP_N = 24; // results shown before the user expands the box
+const TOP_N = 12; // results shown before the user expands the box
 
 export default function RadicalBrowse() {
   const router = useRouter();
