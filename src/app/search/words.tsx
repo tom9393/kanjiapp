@@ -7,6 +7,7 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, Vi
 
 import { searchWords } from '@/data/repository/reference';
 import { Word } from '@/data/types';
+import { Furigana } from '@/ui/Furigana';
 import { usePalette } from '@/ui/theme';
 
 export default function WordSearch() {
@@ -75,9 +76,7 @@ export default function WordSearch() {
                 { borderColor: p.border, backgroundColor: pressed ? p.surfaceVariant : p.card },
               ]}
             >
-              <Text style={[styles.form, { color: p.text }]}>
-                {item.kanjiForm} <Text style={[styles.reading, { color: p.textSecondary }]}>{item.kana}</Text>
-              </Text>
+              <Furigana form={item.kanjiForm} reading={item.kana} size={20} />
               <Text style={[styles.meaning, { color: p.textSecondary }]} numberOfLines={1}>
                 {item.meaning}
               </Text>
@@ -96,7 +95,5 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 16 },
   note: { fontSize: 14, textAlign: 'center', paddingHorizontal: 24, paddingTop: 24 },
   row: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, marginTop: 6 },
-  form: { fontSize: 20, fontWeight: '600' },
-  reading: { fontSize: 15, fontWeight: '400' },
   meaning: { fontSize: 14, paddingTop: 2 },
 });

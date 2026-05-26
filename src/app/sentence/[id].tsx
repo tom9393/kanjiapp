@@ -8,6 +8,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { getSentenceById, lookupWordsByForms } from '@/data/repository/reference';
 import { ExampleSentence, Word } from '@/data/types';
 import { candidateForms, segment, Segment } from '@/domain/sentenceParser';
+import { Furigana } from '@/ui/Furigana';
 import { usePalette } from '@/ui/theme';
 
 export default function SentenceDetail() {
@@ -69,11 +70,14 @@ export default function SentenceDetail() {
                 style={({ pressed }) => [styles.wordRow, pressed && { opacity: 0.6 }]}
               >
                 <View style={styles.wordText}>
-                  <Text style={[styles.wordForm, { color: p.text }]}>
-                    {seg.text}
-                    {dictForm && <Text style={{ color: p.textSecondary }}> → {dictForm}</Text>}
-                    <Text style={{ color: p.textSecondary }}> {w.kana}</Text>
-                  </Text>
+                  <View style={styles.wordTop}>
+                    {dictForm && (
+                      <Text style={[styles.wordForm, { color: p.text }]}>
+                        {seg.text} <Text style={{ color: p.textSecondary }}>→</Text>
+                      </Text>
+                    )}
+                    <Furigana form={w.kanjiForm} reading={w.kana} />
+                  </View>
                   <Text style={{ color: p.textSecondary }}>{w.meaning}</Text>
                 </View>
                 <Text style={[styles.chevron, { color: p.textSecondary }]}>›</Text>
@@ -96,6 +100,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 8 },
   wordRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 5 },
   wordText: { flex: 1 },
+  wordTop: { flexDirection: 'row', alignItems: 'flex-end', flexWrap: 'wrap', columnGap: 6 },
   wordForm: { fontSize: 18, fontWeight: '600' },
   chevron: { fontSize: 22 },
 });

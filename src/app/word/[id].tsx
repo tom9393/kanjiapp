@@ -8,6 +8,7 @@ import { getKanjiByCharacters } from '@/data/repository/kanji';
 import { getSentencesContainingWord, getWordById } from '@/data/repository/reference';
 import { ExampleSentence, Kanji, Word } from '@/data/types';
 import { isKanji } from '@/domain/readingFormatter';
+import { Furigana } from '@/ui/Furigana';
 import { usePalette } from '@/ui/theme';
 
 const COLLAPSE_LIMIT = 5;
@@ -68,8 +69,7 @@ export default function WordDetail() {
 
   return (
     <ScrollView style={{ backgroundColor: p.background }} contentContainerStyle={styles.content}>
-      <Text style={[styles.form, { color: p.text }]}>{word.kanjiForm}</Text>
-      <Text style={[styles.reading, { color: p.textSecondary }]}>{word.kana}</Text>
+      <Furigana form={word.kanjiForm} reading={word.kana} size={56} weight="700" />
       <Text style={[styles.meaning, { color: p.text }]}>{word.meaning}</Text>
 
       {kanji.length > 0 && (
@@ -123,8 +123,6 @@ export default function WordDetail() {
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { padding: 16, alignItems: 'center' },
-  form: { fontSize: 56, fontWeight: '700', textAlign: 'center' },
-  reading: { fontSize: 22, marginTop: 4 },
   meaning: { fontSize: 18, marginTop: 8, textAlign: 'center' },
   card: { alignSelf: 'stretch', borderRadius: 12, padding: 16 },
   section: { marginTop: 16 },

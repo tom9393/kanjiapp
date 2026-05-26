@@ -11,6 +11,7 @@ import { ExampleSentence, KanjiWithSrs, Review, srsOf, Word } from '@/data/types
 import { CardState } from '@/domain/cardState';
 import { MetaChips } from '@/study/components/MetaChips';
 import { Readings } from '@/study/components/Readings';
+import { Furigana } from '@/ui/Furigana';
 import { cardStateColors, usePalette } from '@/ui/theme';
 
 const STATE_LABEL: Record<CardState, string> = {
@@ -97,9 +98,7 @@ export default function KanjiDetail() {
               style={({ pressed }) => [styles.wordRow, pressed && { opacity: 0.6 }]}
             >
               <View style={styles.wordText}>
-                <Text style={[styles.wordForm, { color: p.text }]}>
-                  {w.kanjiForm} <Text style={{ color: p.textSecondary }}>{w.kana}</Text>
-                </Text>
+                <Furigana form={w.kanjiForm} reading={w.kana} />
                 <Text style={{ color: p.textSecondary }}>{w.meaning}</Text>
               </View>
               <Text style={[styles.chevron, { color: p.textSecondary }]}>›</Text>
@@ -187,7 +186,6 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 8 },
   wordRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 5 },
   wordText: { flex: 1 },
-  wordForm: { fontSize: 18, fontWeight: '600' },
   chevron: { fontSize: 22 },
   sentenceRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6 },
   sentenceText: { flex: 1 },
