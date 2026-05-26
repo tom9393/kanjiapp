@@ -6,7 +6,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { RadicalEntry, radicals } from '@/data/radicals';
 import { getKanjiWithSrsByCharacters } from '@/data/repository/kanji';
-import { KanjiWithSrs, srsOf } from '@/data/types';
+import { frequencyRank, KanjiWithSrs, srsOf } from '@/data/types';
 import { cardStateColors, usePalette } from '@/ui/theme';
 
 const TOP_N = 12; // results shown before the user expands the box
@@ -44,7 +44,7 @@ export default function RadicalBrowse() {
     let active = true;
     (async () => {
       const kanji = await getKanjiWithSrsByCharacters(matchChars);
-      kanji.sort((a, b) => a.kanji.frequency - b.kanji.frequency); // most common first
+      kanji.sort((a, b) => frequencyRank(a.kanji) - frequencyRank(b.kanji)); // most common first
       if (active) {
         setResults(kanji);
         setExpanded(false);

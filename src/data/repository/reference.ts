@@ -7,6 +7,7 @@ import {
   isKanjiCode,
   mapSentence,
   mapWord,
+  placeholders,
 } from '@/data/repository/mappers';
 import { parseQuery } from '@/domain/search';
 
@@ -77,6 +78,47 @@ export async function getWordById(id: number): Promise<Word | null> {
   const db = await getReferenceDb();
   const row = await db.getFirstAsync<any>('SELECT * FROM word WHERE id = ?', [id]);
   return row ? mapWord(row) : null;
+}
+
+export async function getSentenceById(id: number): Promise<ExampleSentence | null> {
+  const db = await getReferenceDb();
+  const row = await db.getFirstAsync<any>('SELECT * FROM example_sentence WHERE id = ?', [id]);
+  return row ? mapSentence(row) : null;
+}
+
+// Resolves plain (dictionary) forms to their best matching word, keyed by the form. Used by the
+// sentence parser, which generates many candidate forms per sentence and resolves them in one
+// pass. A form matches a word's written form OR its reading; when several words share a form the
+// common one (then the shortest written form) wins. The kana column is unindexed, so this scans
+// the word table — fine for a one-off parse, but the candidate list is chunked to stay under
+// SQLite's bound-variable limit.
+export async function lookupWordsByForms(forms: string[]): Promise<Map<string, Word>> {
+  const unique = [...new Set(forms)].filter((f) => f.length > 0);
+  const out = new Map<string, Word>();
+  if (unique.length === 0) return out;
+
+  const db = await getReferenceDb();
+  const isBetter = (a: Word, b: Word) =>
+    a.common !== b.common ? a.common : a.kanjiForm.length < b.kanjiForm.length;
+
+  const CHUNK = 400; // two placeholders per form (kanjiForm + kana), well under SQLite's 999 limit
+  for (let i = 0; i < unique.length; i += CHUNK) {
+    const chunk = unique.slice(i, i + CHUNK);
+    const ph = placeholders(chunk.length);
+    const rows = await db.getAllAsync<any>(
+      `SELECT * FROM word WHERE kanjiForm IN (${ph}) OR kana IN (${ph})`,
+      [...chunk, ...chunk],
+    );
+    const wanted = new Set(chunk);
+    for (const word of rows.map(mapWord)) {
+      for (const key of [word.kanjiForm, word.kana]) {
+        if (!wanted.has(key)) continue;
+        const current = out.get(key);
+        if (!current || isBetter(word, current)) out.set(key, word);
+      }
+    }
+  }
+  return out;
 }
 
 // Sentences whose Japanese text contains the whole word. Anchored on the word's first kanji

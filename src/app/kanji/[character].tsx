@@ -61,6 +61,7 @@ export default function KanjiDetail() {
   const srs = srsOf(card);
   const studied = card.rawSrs != null;
   const openWord = (id: number) => router.push({ pathname: '/word/[id]', params: { id } });
+  const openSentence = (id: number) => router.push({ pathname: '/sentence/[id]', params: { id } });
 
   return (
     <ScrollView style={{ backgroundColor: p.background }} contentContainerStyle={styles.content}>
@@ -118,10 +119,17 @@ export default function KanjiDetail() {
         <View style={[styles.statusCard, styles.section, { backgroundColor: p.surfaceVariant }]}>
           <Text style={[styles.sectionTitle, { color: p.text }]}>Sentences</Text>
           {(sentencesExpanded ? sentences : sentences.slice(0, COLLAPSE_LIMIT)).map((s) => (
-            <View key={s.id} style={styles.sentenceRow}>
-              <Text style={[styles.sentenceJp, { color: p.text }]}>{s.japanese}</Text>
-              <Text style={{ color: p.textSecondary }}>{s.english}</Text>
-            </View>
+            <Pressable
+              key={s.id}
+              onPress={() => openSentence(s.id)}
+              style={({ pressed }) => [styles.sentenceRow, pressed && { opacity: 0.6 }]}
+            >
+              <View style={styles.sentenceText}>
+                <Text style={[styles.sentenceJp, { color: p.text }]}>{s.japanese}</Text>
+                <Text style={{ color: p.textSecondary }}>{s.english}</Text>
+              </View>
+              <Text style={[styles.chevron, { color: p.textSecondary }]}>›</Text>
+            </Pressable>
           ))}
           {sentences.length > COLLAPSE_LIMIT && (
             <ShowMore
@@ -181,7 +189,8 @@ const styles = StyleSheet.create({
   wordText: { flex: 1 },
   wordForm: { fontSize: 18, fontWeight: '600' },
   chevron: { fontSize: 22 },
-  sentenceRow: { paddingVertical: 6 },
+  sentenceRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6 },
+  sentenceText: { flex: 1 },
   sentenceJp: { fontSize: 16, lineHeight: 24 },
   showMore: { paddingTop: 10 },
 });

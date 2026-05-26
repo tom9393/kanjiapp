@@ -63,6 +63,7 @@ export default function WordDetail() {
   }
 
   const openKanji = (character: string) => router.push({ pathname: '/kanji/[character]', params: { character } });
+  const openSentence = (sid: number) => router.push({ pathname: '/sentence/[id]', params: { id: sid } });
   const shownSentences = sentencesExpanded ? sentences : sentences.slice(0, COLLAPSE_LIMIT);
 
   return (
@@ -94,10 +95,17 @@ export default function WordDetail() {
         <View style={[styles.card, styles.section, { backgroundColor: p.surfaceVariant }]}>
           <Text style={[styles.sectionTitle, { color: p.text }]}>Sentences</Text>
           {shownSentences.map((s) => (
-            <View key={s.id} style={styles.sentenceRow}>
-              <Text style={[styles.sentenceJp, { color: p.text }]}>{s.japanese}</Text>
-              <Text style={{ color: p.textSecondary }}>{s.english}</Text>
-            </View>
+            <Pressable
+              key={s.id}
+              onPress={() => openSentence(s.id)}
+              style={({ pressed }) => [styles.sentenceRow, pressed && { opacity: 0.6 }]}
+            >
+              <View style={styles.sentenceText}>
+                <Text style={[styles.sentenceJp, { color: p.text }]}>{s.japanese}</Text>
+                <Text style={{ color: p.textSecondary }}>{s.english}</Text>
+              </View>
+              <Text style={[styles.chevron, { color: p.textSecondary }]}>›</Text>
+            </Pressable>
           ))}
           {sentences.length > COLLAPSE_LIMIT && (
             <Pressable onPress={() => setSentencesExpanded((v) => !v)} style={styles.showMore} hitSlop={8}>
@@ -125,7 +133,8 @@ const styles = StyleSheet.create({
   kanjiGlyph: { fontSize: 34, fontWeight: '700', width: 44, textAlign: 'center' },
   kanjiMeaning: { flex: 1, fontSize: 14 },
   chevron: { fontSize: 22 },
-  sentenceRow: { paddingVertical: 6 },
+  sentenceRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6 },
+  sentenceText: { flex: 1 },
   sentenceJp: { fontSize: 16, lineHeight: 24 },
   showMore: { paddingTop: 10 },
 });

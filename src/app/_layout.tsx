@@ -55,6 +55,7 @@ export default function RootLayout() {
               <Stack.Screen name="search/kanji" options={{ title: 'Search Kanji' }} />
               <Stack.Screen name="search/words" options={{ title: 'Search Words' }} />
               <Stack.Screen name="word/[id]" options={{ title: 'Word' }} />
+              <Stack.Screen name="sentence/[id]" options={{ title: 'Sentence' }} />
               <Stack.Screen name="settings" options={{ title: 'Settings' }} />
               <Stack.Screen name="stats" options={{ title: 'Statistics' }} />
             </Stack>

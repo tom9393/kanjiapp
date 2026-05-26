@@ -68,3 +68,9 @@ export function defaultSrs(character: string): Srs {
 export function srsOf(card: KanjiWithSrs): Srs {
   return card.rawSrs ?? defaultSrs(card.kanji.character);
 }
+
+/** Ascending sort key for "most common first": frequency is a rank (1 = 日, the most common),
+ *  but the ~10k unranked kanji store 0, so map 0 to Infinity to sort them last instead of first. */
+export function frequencyRank(k: Kanji): number {
+  return k.frequency || Infinity;
+}

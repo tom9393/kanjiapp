@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { getAllKanjiWithSrs } from '@/data/repository/kanji';
-import { KanjiWithSrs } from '@/data/types';
+import { frequencyRank, KanjiWithSrs } from '@/data/types';
 import { matchesKanji, parseQuery } from '@/domain/search';
 import { KanjiGrid } from '@/ui/KanjiGrid';
 import { usePalette } from '@/ui/theme';
@@ -22,7 +22,7 @@ export default function KanjiSearch() {
     let active = true;
     getAllKanjiWithSrs().then((k) => {
       if (!active) return;
-      k.sort((a, b) => a.kanji.frequency - b.kanji.frequency); // most common first
+      k.sort((a, b) => frequencyRank(a.kanji) - frequencyRank(b.kanji)); // most common first
       setAll(k);
       setLoading(false);
     });
