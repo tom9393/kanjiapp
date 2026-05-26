@@ -7,24 +7,32 @@ import type { NativeStackHeaderProps } from '@react-navigation/native-stack';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useDrawerStore } from '@/state/drawerStore';
 import { usePalette } from '@/ui/theme';
 
-export function AppHeader({ options, back, navigation }: NativeStackHeaderProps) {
+export function AppHeader({ options, back, navigation, route }: NativeStackHeaderProps) {
   const p = usePalette();
   const insets = useSafeAreaInsets();
+  const { openDrawer } = useDrawerStore();
   const title = typeof options.title === 'string' ? options.title : '';
   const showBack = back != null && options.headerBackVisible !== false;
+  const showMenu = !showBack && route.name === 'index';
 
   return (
     <View style={{ paddingTop: insets.top, backgroundColor: p.background }}>
       <View style={styles.bar}>
         {showBack && (
-          <Pressable onPress={() => navigation.goBack()} hitSlop={8} style={styles.back}>
+          <Pressable onPress={() => navigation.goBack()} hitSlop={8} style={styles.leftButton}>
             <Text style={[styles.backArrow, { color: p.text }]}>←</Text>
           </Pressable>
         )}
+        {showMenu && (
+          <Pressable onPress={openDrawer} hitSlop={8} style={styles.leftButton}>
+            <Text style={[styles.menuIcon, { color: p.text }]}>☰</Text>
+          </Pressable>
+        )}
         <Text
-          style={[styles.title, { color: p.text }, !showBack && styles.titleNoBack]}
+          style={[styles.title, { color: p.text }, !showBack && !showMenu && styles.titleNoBack]}
           numberOfLines={1}
         >
           {title}
@@ -36,8 +44,9 @@ export function AppHeader({ options, back, navigation }: NativeStackHeaderProps)
 
 const styles = StyleSheet.create({
   bar: { height: 56, flexDirection: 'row', alignItems: 'center' },
-  back: { paddingHorizontal: 16, height: '100%', justifyContent: 'center' },
+  leftButton: { paddingHorizontal: 16, height: '100%', justifyContent: 'center' },
   backArrow: { fontSize: 26, lineHeight: 26 },
+  menuIcon: { fontSize: 24, lineHeight: 26 },
   title: { fontSize: 20, fontWeight: '500' },
   titleNoBack: { marginLeft: 16 },
 });

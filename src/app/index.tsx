@@ -48,12 +48,6 @@ export default function Frontpage() {
           </>
         )}
       </View>
-
-      <View style={styles.footer}>
-        <Btn label="Browse Kanji" variant="outlined" onPress={() => router.push('/kanji')} style={styles.footerBtn} />
-        <Btn label="Stats" variant="outlined" onPress={() => router.push('/stats')} style={styles.footerBtn} />
-        <Btn label="Settings" variant="outlined" onPress={() => router.push('/settings')} style={styles.footerBtn} />
-      </View>
     </SafeAreaView>
   );
 }
@@ -63,6 +57,4 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4, padding: 16 },
   count: { fontSize: 17, textAlign: 'center' },
   note: { fontSize: 14, textAlign: 'center' },
-  footer: { flexDirection: 'row', padding: 16 },
-  footerBtn: { flex: 1 },
 });
