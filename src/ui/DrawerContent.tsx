@@ -8,6 +8,7 @@ import { usePalette } from '@/ui/theme';
 
 const ITEMS: { label: string; path: Href }[] = [
   { label: 'Browse Kanji', path: '/kanji' },
+  { label: 'Browse Radicals', path: '/radicals' },
   { label: 'Stats', path: '/stats' },
   { label: 'Settings', path: '/settings' },
 ];

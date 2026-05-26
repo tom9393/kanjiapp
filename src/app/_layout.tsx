@@ -49,6 +49,7 @@ export default function RootLayout() {
               <Stack.Screen name="study" options={{ title: 'Study' }} />
               <Stack.Screen name="complete" options={{ title: 'Complete', headerBackVisible: false }} />
               <Stack.Screen name="kanji/index" options={{ title: 'Browse Kanji' }} />
+              <Stack.Screen name="radicals" options={{ title: 'Browse Radicals' }} />
               <Stack.Screen name="kanji/[character]" options={{ title: 'Kanji' }} />
               <Stack.Screen name="settings" options={{ title: 'Settings' }} />
               <Stack.Screen name="stats" options={{ title: 'Statistics' }} />
