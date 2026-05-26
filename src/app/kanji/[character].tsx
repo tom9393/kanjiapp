@@ -1,6 +1,6 @@
 // Kanji detail: readings + SRS status + review count, plus example words/sentences
 // (served from the prebuilt reference.db).
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -24,6 +24,7 @@ const COLLAPSE_LIMIT = 5;
 
 export default function KanjiDetail() {
   const { character } = useLocalSearchParams<{ character: string }>();
+  const router = useRouter();
   const p = usePalette();
   const [card, setCard] = useState<KanjiWithSrs | null | undefined>(undefined);
   const [history, setHistory] = useState<Review[]>([]);
@@ -59,6 +60,7 @@ export default function KanjiDetail() {
 
   const srs = srsOf(card);
   const studied = card.rawSrs != null;
+  const openWord = (id: number) => router.push({ pathname: '/word/[id]', params: { id } });
 
   return (
     <ScrollView style={{ backgroundColor: p.background }} contentContainerStyle={styles.content}>
@@ -88,12 +90,19 @@ export default function KanjiDetail() {
         <View style={[styles.statusCard, styles.section, { backgroundColor: p.surfaceVariant }]}>
           <Text style={[styles.sectionTitle, { color: p.text }]}>Words</Text>
           {(wordsExpanded ? words : words.slice(0, COLLAPSE_LIMIT)).map((w) => (
-            <View key={w.id} style={styles.wordRow}>
-              <Text style={[styles.wordForm, { color: p.text }]}>
-                {w.kanjiForm} <Text style={{ color: p.textSecondary }}>{w.kana}</Text>
-              </Text>
-              <Text style={{ color: p.textSecondary }}>{w.meaning}</Text>
-            </View>
+            <Pressable
+              key={w.id}
+              onPress={() => openWord(w.id)}
+              style={({ pressed }) => [styles.wordRow, pressed && { opacity: 0.6 }]}
+            >
+              <View style={styles.wordText}>
+                <Text style={[styles.wordForm, { color: p.text }]}>
+                  {w.kanjiForm} <Text style={{ color: p.textSecondary }}>{w.kana}</Text>
+                </Text>
+                <Text style={{ color: p.textSecondary }}>{w.meaning}</Text>
+              </View>
+              <Text style={[styles.chevron, { color: p.textSecondary }]}>›</Text>
+            </Pressable>
           ))}
           {words.length > COLLAPSE_LIMIT && (
             <ShowMore
@@ -168,8 +177,10 @@ const styles = StyleSheet.create({
   statusRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 },
   section: { marginTop: 16 },
   sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 8 },
-  wordRow: { paddingVertical: 5 },
+  wordRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 5 },
+  wordText: { flex: 1 },
   wordForm: { fontSize: 18, fontWeight: '600' },
+  chevron: { fontSize: 22 },
   sentenceRow: { paddingVertical: 6 },
   sentenceJp: { fontSize: 16, lineHeight: 24 },
   showMore: { paddingTop: 10 },
