@@ -9,7 +9,8 @@ import {
   mapWord,
 } from '@/data/repository/mappers';
 
-export async function getWordsForKanji(character: string, limit = 10): Promise<Word[]> {
+// limit omitted → all rows (SQLite treats LIMIT -1 as no upper bound).
+export async function getWordsForKanji(character: string, limit?: number): Promise<Word[]> {
   const db = await getReferenceDb();
   const rows = await db.getAllAsync<any>(
     `SELECT w.* FROM word w
@@ -17,19 +18,19 @@ export async function getWordsForKanji(character: string, limit = 10): Promise<W
      WHERE wci.character = ?
      ORDER BY w.common DESC
      LIMIT ?`,
-    [character, limit],
+    [character, limit ?? -1],
   );
   return rows.map(mapWord);
 }
 
-export async function getSentencesForKanji(character: string, limit = 5): Promise<ExampleSentence[]> {
+export async function getSentencesForKanji(character: string, limit?: number): Promise<ExampleSentence[]> {
   const db = await getReferenceDb();
   const rows = await db.getAllAsync<any>(
     `SELECT s.* FROM example_sentence s
      INNER JOIN sentence_char_index sci ON s.id = sci.sentenceId
      WHERE sci.character = ?
      LIMIT ?`,
-    [character, limit],
+    [character, limit ?? -1],
   );
   return rows.map(mapSentence);
 }

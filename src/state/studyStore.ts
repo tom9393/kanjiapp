@@ -32,6 +32,8 @@ interface StudyStore {
   submitAnswer: (ease: CardEase) => Promise<void>;
   undo: () => Promise<void>;
   canUndoCurrent: () => boolean;
+  studyStatus: () => 'loading' | 'active' | 'complete';
+  currentCard: () => CardWithContext;
 }
 
 export const useStudyStore = create<StudyStore>((set, get) => ({
@@ -93,18 +95,15 @@ export const useStudyStore = create<StudyStore>((set, get) => ({
     const c = a.queue[0] ?? null;
     return a.history.length > 0 && !!c && srsOf(c.card).type === CardState.REVIEW;
   },
-}));
 
-export function useStudyStatus(): 'loading' | 'active' | 'complete' {
-  return useStudyStore((s) => {
-    if (s.active === null) return 'loading';
-    if (s.active.queue.length === 0) return 'complete';
+  studyStatus: () => {
+    const a = get().active;
+    if (a === null) return 'loading';
+    if (a.queue.length === 0) return 'complete';
     return 'active';
-  });
-}
+  },
 
-// Only called from StudyContent, rendered solely while status === 'active', so active and
-// a current card are always present — the non-null assertions pin that invariant to one place.
-export function useCurrentCard(): CardWithContext {
-  return useStudyStore((s) => s.active!.queue[0]!);
-}
+  // Only called from StudyContent, rendered solely while status === 'active', so active and
+  // a current card are always present — the non-null assertions pin that invariant to one place.
+  currentCard: () => get().active!.queue[0]!,
+}));

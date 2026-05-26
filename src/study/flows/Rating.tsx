@@ -1,6 +1,6 @@
 // Learning phase 3: show the answer and collect a self-rating. Ported from study/view/Rating.
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useCurrentCard, useStudyStore } from '@/state/studyStore';
+import { useStudyStore } from '@/state/studyStore';
 import { AnswerButtons } from '@/study/components/AnswerButtons';
 import { MetaChips } from '@/study/components/MetaChips';
 import { Readings } from '@/study/components/Readings';
@@ -9,7 +9,7 @@ import { flowStyles } from '@/study/flows/styles';
 import { usePalette } from '@/ui/theme';
 
 export function Rating() {
-  const card = useCurrentCard();
+  const card = useStudyStore((s) => s.currentCard());
   const submitAnswer = useStudyStore((s) => s.submitAnswer);
   const p = usePalette();
   const kanji = card.card.kanji;

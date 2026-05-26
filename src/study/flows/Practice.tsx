@@ -5,7 +5,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Prefs } from '@/settings/preferences';
 import { getLearningRepetitions } from '@/settings/settingsProvider';
 import { useSetting } from '@/settings/useSetting';
-import { useCurrentCard } from '@/state/studyStore';
+import { useStudyStore } from '@/state/studyStore';
 import { Btn } from '@/study/components/Btn';
 import { DrawingArea } from '@/study/components/DrawingArea';
 import { Readings } from '@/study/components/Readings';
@@ -13,7 +13,7 @@ import { flowStyles } from '@/study/flows/styles';
 import { usePalette } from '@/ui/theme';
 
 export function Practice({ onFinished }: { onFinished: () => void }) {
-  const card = useCurrentCard();
+  const card = useStudyStore((s) => s.currentCard());
   const total = useSetting(getLearningRepetitions) ?? Prefs.learningRepetitions.default;
   const [round, setRound] = useState(0);
   const p = usePalette();

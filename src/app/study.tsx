@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { LoadRequest, useStudyStatus, useStudyStore } from '@/state/studyStore';
+import { LoadRequest, useStudyStore } from '@/state/studyStore';
 import { StudyContent } from '@/study/StudyContent';
 import { usePalette } from '@/ui/theme';
 
@@ -14,7 +14,7 @@ export default function StudyScreen() {
   const params = useLocalSearchParams<{ year?: string; extra?: string }>();
   const p = usePalette();
 
-  const status = useStudyStatus();
+  const status = useStudyStore((s) => s.studyStatus());
 
   useEffect(() => {
     const year = Number(params.year ?? 0);

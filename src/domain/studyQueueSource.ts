@@ -69,7 +69,7 @@ async function hydrate(
 ): Promise<CardWithContext> {
   const allowedKanji = new Set(studiedChars);
   allowedKanji.add(card.kanji.character);
-  const words = shuffle(await getWordsForKanji(card.kanji.character));
+  const words = shuffle(await getWordsForKanji(card.kanji.character, 10));
   const examples = await buildExamples(words, allowedKanji, kanjiCache);
   return { card, examples };
 }

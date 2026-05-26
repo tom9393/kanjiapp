@@ -2,7 +2,7 @@
 // study/view/ReviewWritingContent.
 import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { useCurrentCard, useStudyStore } from '@/state/studyStore';
+import { useStudyStore } from '@/state/studyStore';
 import { PromptHeader } from '@/study/PromptHeader';
 import { Btn } from '@/study/components/Btn';
 import { DrawingArea } from '@/study/components/DrawingArea';
@@ -14,7 +14,7 @@ import { flowStyles } from '@/study/flows/styles';
 import { usePalette } from '@/ui/theme';
 
 export function ReviewWriting() {
-  const card = useCurrentCard();
+  const card = useStudyStore((s) => s.currentCard());
   // Per-card reveal: StudyContent remounts this per card, so it resets on its own.
   const [isRevealed, setIsRevealed] = useState(false);
   const undo = useStudyStore((s) => s.undo);

@@ -6,7 +6,7 @@ import { srsOf } from '@/data/types';
 import { CardState } from '@/domain/cardState';
 import { getStudyModes, type StudyModesSnapshot } from '@/settings/settingsProvider';
 import { useSetting } from '@/settings/useSetting';
-import { useCurrentCard } from '@/state/studyStore';
+import { useStudyStore } from '@/state/studyStore';
 import { Presentation } from '@/study/flows/Presentation';
 import { Practice } from '@/study/flows/Practice';
 import { Rating } from '@/study/flows/Rating';
@@ -14,13 +14,13 @@ import { ReviewReading } from '@/study/flows/ReviewReading';
 import { ReviewWriting } from '@/study/flows/ReviewWriting';
 
 export function StudyContent() {
-  const character = useCurrentCard().card.kanji.character;
+  const character = useStudyStore((s) => s.currentCard()).card.kanji.character;
   // Remount per card so review mode and the learning phase reset when the card advances.
   return <CardFlow key={character} />;
 }
 
 function CardFlow() {
-  const card = useCurrentCard();
+  const card = useStudyStore((s) => s.currentCard());
   return srsOf(card.card).type === CardState.REVIEW ? <Review /> : <Learning />;
 }
 

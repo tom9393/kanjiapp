@@ -1,7 +1,7 @@
 // Learning phase 1: present the kanji with readings, an example, and the stroke-order
 // diagram before practice. Ported from study/view/Presentation.
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useCurrentCard } from '@/state/studyStore';
+import { useStudyStore } from '@/state/studyStore';
 import { Btn } from '@/study/components/Btn';
 import { MetaChips } from '@/study/components/MetaChips';
 import { Readings } from '@/study/components/Readings';
@@ -11,7 +11,7 @@ import { flowStyles } from '@/study/flows/styles';
 import { usePalette } from '@/ui/theme';
 
 export function Presentation({ onBegin }: { onBegin: () => void }) {
-  const card = useCurrentCard();
+  const card = useStudyStore((s) => s.currentCard());
   const p = usePalette();
   const kanji = card.card.kanji;
   const sentence = card.examples[0]?.sentence ?? null;

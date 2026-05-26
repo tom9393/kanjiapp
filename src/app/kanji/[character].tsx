@@ -2,7 +2,7 @@
 // (served from the prebuilt reference.db).
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { getKanjiWithSrs } from '@/data/repository/kanji';
 import { getReviewHistory } from '@/data/repository/reviews';
@@ -20,6 +20,8 @@ const STATE_LABEL: Record<CardState, string> = {
   [CardState.RELEARNING]: 'Relearning',
 };
 
+const COLLAPSE_LIMIT = 5;
+
 export default function KanjiDetail() {
   const { character } = useLocalSearchParams<{ character: string }>();
   const p = usePalette();
@@ -27,6 +29,8 @@ export default function KanjiDetail() {
   const [history, setHistory] = useState<Review[]>([]);
   const [words, setWords] = useState<Word[]>([]);
   const [sentences, setSentences] = useState<ExampleSentence[]>([]);
+  const [wordsExpanded, setWordsExpanded] = useState(false);
+  const [sentencesExpanded, setSentencesExpanded] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -83,7 +87,7 @@ export default function KanjiDetail() {
       {words.length > 0 && (
         <View style={[styles.statusCard, styles.section, { backgroundColor: p.surfaceVariant }]}>
           <Text style={[styles.sectionTitle, { color: p.text }]}>Words</Text>
-          {words.map((w) => (
+          {(wordsExpanded ? words : words.slice(0, COLLAPSE_LIMIT)).map((w) => (
             <View key={w.id} style={styles.wordRow}>
               <Text style={[styles.wordForm, { color: p.text }]}>
                 {w.kanjiForm} <Text style={{ color: p.textSecondary }}>{w.kana}</Text>
@@ -91,21 +95,54 @@ export default function KanjiDetail() {
               <Text style={{ color: p.textSecondary }}>{w.meaning}</Text>
             </View>
           ))}
+          {words.length > COLLAPSE_LIMIT && (
+            <ShowMore
+              expanded={wordsExpanded}
+              hiddenCount={words.length - COLLAPSE_LIMIT}
+              onToggle={() => setWordsExpanded((v) => !v)}
+            />
+          )}
         </View>
       )}
 
       {sentences.length > 0 && (
         <View style={[styles.statusCard, styles.section, { backgroundColor: p.surfaceVariant }]}>
           <Text style={[styles.sectionTitle, { color: p.text }]}>Sentences</Text>
-          {sentences.map((s) => (
+          {(sentencesExpanded ? sentences : sentences.slice(0, COLLAPSE_LIMIT)).map((s) => (
             <View key={s.id} style={styles.sentenceRow}>
               <Text style={[styles.sentenceJp, { color: p.text }]}>{s.japanese}</Text>
               <Text style={{ color: p.textSecondary }}>{s.english}</Text>
             </View>
           ))}
+          {sentences.length > COLLAPSE_LIMIT && (
+            <ShowMore
+              expanded={sentencesExpanded}
+              hiddenCount={sentences.length - COLLAPSE_LIMIT}
+              onToggle={() => setSentencesExpanded((v) => !v)}
+            />
+          )}
         </View>
       )}
     </ScrollView>
+  );
+}
+
+function ShowMore({
+  expanded,
+  hiddenCount,
+  onToggle,
+}: {
+  expanded: boolean;
+  hiddenCount: number;
+  onToggle: () => void;
+}) {
+  const p = usePalette();
+  return (
+    <Pressable onPress={onToggle} style={styles.showMore} hitSlop={8}>
+      <Text style={{ color: p.primary, fontWeight: '600' }}>
+        {expanded ? 'Show less' : `Show ${hiddenCount} more`}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -135,4 +172,5 @@ const styles = StyleSheet.create({
   wordForm: { fontSize: 18, fontWeight: '600' },
   sentenceRow: { paddingVertical: 6 },
   sentenceJp: { fontSize: 16, lineHeight: 24 },
+  showMore: { paddingTop: 10 },
 });
