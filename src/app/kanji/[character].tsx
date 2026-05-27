@@ -13,6 +13,7 @@ import { CardState } from '@/domain/cardState';
 import { MetaChips } from '@/study/components/MetaChips';
 import { Readings } from '@/study/components/Readings';
 import { Furigana } from '@/ui/Furigana';
+import { RadicalTree } from '@/ui/RadicalTree';
 import { cardStateColors, usePalette } from '@/ui/theme';
 
 const STATE_LABEL: Record<CardState, string> = {
@@ -106,6 +107,8 @@ export default function KanjiDetail() {
         )}
         <StatusRow label="Reviews" value={`${history.length}`} />
       </View>
+
+      <RadicalTree character={card.kanji.character} />
 
       {words.length > 0 && (
         <View style={[styles.statusCard, styles.section, { backgroundColor: p.surfaceVariant }]}>

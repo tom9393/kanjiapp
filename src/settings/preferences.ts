@@ -38,6 +38,7 @@ export const Prefs = {
   showExampleWords: { key: 'show_example_words', default: true, label: 'Show example words', description: 'Show vocabulary examples when studying or viewing kanji' } as BoolPref,
   showExampleSentences: { key: 'show_example_sentences', default: true, label: 'Show example sentences', description: 'Show example sentences when studying or viewing kanji' } as BoolPref,
   animateStrokes: { key: 'animate_strokes', default: false, label: 'Animate strokes', description: 'Play stroke-order diagrams as an animation, drawing each stroke in order' } as BoolPref,
+  decomposeToPrimitives: { key: 'decompose_to_primitives', default: false, label: 'Decompose to primitives', description: 'Break the radical tree down to atomic parts and strokes instead of stopping at known kanji' } as BoolPref,
 } as const;
 
 /** Ported from getDailyResetMs() — the ms timestamp of the most recent daily reset boundary. */

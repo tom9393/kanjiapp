@@ -107,3 +107,7 @@ export function getStrokeWidth(): Promise<number> {
 export function getAnimateStrokes(): Promise<boolean> {
   return getBoolean(Prefs.animateStrokes);
 }
+
+export function getDecomposeToPrimitives(): Promise<boolean> {
+  return getBoolean(Prefs.decomposeToPrimitives);
+}

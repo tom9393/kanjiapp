@@ -20,6 +20,7 @@ export const SECTIONS: Section[] = [
   { id: 'question-types', title: 'Question Types', prefs: [Prefs.studyModeHandwriting, Prefs.studyModeReading] },
   { id: 'srs-timing', title: 'SRS Timing', prefs: [Prefs.againDelay, Prefs.hardDelay, Prefs.goodDelay, Prefs.easyDelay] },
   { id: 'examples', title: 'Examples', prefs: [Prefs.showExampleWords, Prefs.showExampleSentences] },
+  { id: 'radicals', title: 'Radicals', prefs: [Prefs.decomposeToPrimitives] },
 ];
 
 export const ALL_PREFS: AnyPref[] = SECTIONS.flatMap((s) => s.prefs);
