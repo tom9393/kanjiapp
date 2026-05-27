@@ -1,42 +1,18 @@
-// Ported from settingsmenu/view/SettingsScreen.kt — sectioned preference list. Each section
-// is a card of divided rows; booleans render a Switch, numbers an inline numeric field.
+// A single settings group, reached from the settings menu. Booleans render a Switch,
+// numbers an inline numeric field — same row rendering the combined screen used before.
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
-import { BoolPref, NumberPref, Prefs } from '@/settings/preferences';
+import { BoolPref, NumberPref } from '@/settings/preferences';
+import { ALL_PREFS, AnyPref, SECTIONS } from '@/settings/sections';
 import { useSettingsStore } from '@/state/settingsStore';
 import { usePalette } from '@/ui/theme';
 
-type AnyPref = NumberPref | BoolPref;
-
-interface Section {
-  title: string;
-  prefs: AnyPref[];
-}
-
-const SECTIONS: Section[] = [
-  { title: 'Appearance', prefs: [Prefs.darkMode, Prefs.strokeWidth] },
-  {
-    title: 'Study',
-    prefs: [Prefs.maxReviewsPerDay, Prefs.newCardsPerDay, Prefs.dailyResetHour, Prefs.learningRepetitions],
-  },
-  { title: 'Question Types', prefs: [Prefs.studyModeHandwriting, Prefs.studyModeReading] },
-  { title: 'SRS Timing', prefs: [Prefs.againDelay, Prefs.hardDelay, Prefs.goodDelay, Prefs.easyDelay] },
-  { title: 'Examples', prefs: [Prefs.showExampleWords, Prefs.showExampleSentences] },
-];
-
-const ALL_PREFS: AnyPref[] = SECTIONS.flatMap((s) => s.prefs);
-
-export default function SettingsScreen() {
+export default function SettingsSection() {
   const p = usePalette();
+  const { section: sectionId } = useLocalSearchParams<{ section: string }>();
+  const section = SECTIONS.find((s) => s.id === sectionId);
   const values = useSettingsStore((s) => s.values);
   const loaded = useSettingsStore((s) => s.loaded);
 
@@ -44,46 +20,28 @@ export default function SettingsScreen() {
     useSettingsStore.getState().load(ALL_PREFS);
   }, []);
 
-  if (!loaded) {
-    return (
-      <View style={[styles.center, { backgroundColor: p.background }]}>
-        <ActivityIndicator />
-      </View>
-    );
-  }
+  if (!section) return null;
 
   return (
-    <ScrollView
-      style={{ backgroundColor: p.background }}
-      contentContainerStyle={styles.content}
-    >
-      {SECTIONS.map((section) => (
-        <SectionCard key={section.title} section={section} values={values} />
-      ))}
-    </ScrollView>
-  );
-}
-
-function SectionCard({
-  section,
-  values,
-}: {
-  section: Section;
-  values: Record<string, number | boolean>;
-}) {
-  const p = usePalette();
-  return (
-    <View style={styles.section}>
-      <Text style={[styles.sectionTitle, { color: p.primary }]}>{section.title.toUpperCase()}</Text>
-      <View style={[styles.card, { backgroundColor: p.surfaceVariant }]}>
-        {section.prefs.map((pref, index) => (
-          <View key={pref.key}>
-            {index > 0 && <View style={[styles.divider, { backgroundColor: p.border }]} />}
-            <SettingRow pref={pref} value={values[pref.key]} />
+    <>
+      <Stack.Screen options={{ title: section.title }} />
+      {!loaded ? (
+        <View style={[styles.center, { backgroundColor: p.background }]}>
+          <ActivityIndicator />
+        </View>
+      ) : (
+        <ScrollView style={{ backgroundColor: p.background }} contentContainerStyle={styles.content}>
+          <View style={[styles.card, { backgroundColor: p.surfaceVariant }]}>
+            {section.prefs.map((pref, index) => (
+              <View key={pref.key}>
+                {index > 0 && <View style={[styles.divider, { backgroundColor: p.border }]} />}
+                <SettingRow pref={pref} value={values[pref.key]} />
+              </View>
+            ))}
           </View>
-        ))}
-      </View>
-    </View>
+        </ScrollView>
+      )}
+    </>
   );
 }
 
@@ -141,9 +99,7 @@ function NumberControl({ pref, value }: { pref: NumberPref; value: number }) {
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  content: { paddingHorizontal: 16, paddingVertical: 24, gap: 20 },
-  section: { gap: 6 },
-  sectionTitle: { fontSize: 12, fontWeight: '600', letterSpacing: 0.5, paddingHorizontal: 4 },
+  content: { paddingHorizontal: 16, paddingVertical: 24 },
   card: { borderRadius: 12, overflow: 'hidden' },
   divider: { height: StyleSheet.hairlineWidth, marginHorizontal: 16 },
   row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 16 },

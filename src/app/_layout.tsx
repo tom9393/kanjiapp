@@ -57,7 +57,8 @@ export default function RootLayout() {
               <Stack.Screen name="favorites" options={{ title: 'Favorites' }} />
               <Stack.Screen name="word/[id]" options={{ title: 'Word' }} />
               <Stack.Screen name="sentence/[id]" options={{ title: 'Sentence' }} />
-              <Stack.Screen name="settings" options={{ title: 'Settings' }} />
+              <Stack.Screen name="settings/index" options={{ title: 'Settings' }} />
+              <Stack.Screen name="settings/[section]" options={{ title: 'Settings' }} />
               <Stack.Screen name="stats" options={{ title: 'Statistics' }} />
             </Stack>
           </Drawer>

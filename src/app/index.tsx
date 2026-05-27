@@ -6,8 +6,8 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-nat
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { canStudy, useFrontpageStore } from '@/state/frontpageStore';
-import { Btn } from '@/study/components/Btn';
 import { Divider, StatBox, StatCard, shared } from '@/stats/primitives';
+import { Btn } from '@/study/components/Btn';
 import { usePalette } from '@/ui/theme';
 
 export default function Frontpage() {
@@ -45,12 +45,8 @@ export default function Frontpage() {
     <SafeAreaView style={[styles.container, { backgroundColor: p.background }]} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={[styles.streakCard, { backgroundColor: p.surfaceVariant }]}>
-          <Text style={styles.streakValue}>
-            {'🔥 '}
-            <Text style={{ color: p.text }}>{streak}</Text>
-          </Text>
           <Text style={[styles.streakLabel, { color: p.textSecondary }]}>
-            {`day streak · ${totalReviews} reviews all-time`}
+            {`${streak} day streak · ${totalReviews} reviews all-time`}
           </Text>
         </View>
 
