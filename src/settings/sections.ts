@@ -11,7 +11,7 @@ export interface Section {
 }
 
 export const SECTIONS: Section[] = [
-  { id: 'appearance', title: 'Appearance', prefs: [Prefs.darkMode, Prefs.strokeWidth] },
+  { id: 'appearance', title: 'Appearance', prefs: [Prefs.darkMode, Prefs.strokeWidth, Prefs.animateStrokes] },
   {
     id: 'study',
     title: 'Study',

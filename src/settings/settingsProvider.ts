@@ -103,3 +103,7 @@ export function getResetHour(): Promise<number> {
 export function getStrokeWidth(): Promise<number> {
   return getNumber(Prefs.strokeWidth);
 }
+
+export function getAnimateStrokes(): Promise<boolean> {
+  return getBoolean(Prefs.animateStrokes);
+}

@@ -37,6 +37,7 @@ export const Prefs = {
   darkMode: { key: 'dark_mode', default: false, label: 'Dark mode', description: 'Override system theme' } as BoolPref,
   showExampleWords: { key: 'show_example_words', default: true, label: 'Show example words', description: 'Show vocabulary examples when studying or viewing kanji' } as BoolPref,
   showExampleSentences: { key: 'show_example_sentences', default: true, label: 'Show example sentences', description: 'Show example sentences when studying or viewing kanji' } as BoolPref,
+  animateStrokes: { key: 'animate_strokes', default: false, label: 'Animate strokes', description: 'Play stroke-order diagrams as an animation, drawing each stroke in order' } as BoolPref,
 } as const;
 
 /** Ported from getDailyResetMs() — the ms timestamp of the most recent daily reset boundary. */
