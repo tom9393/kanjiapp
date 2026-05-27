@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS Kanji (
   grade INTEGER NOT NULL,
   frequency INTEGER NOT NULL,
   jlpt INTEGER NOT NULL,
+  kanken INTEGER NOT NULL DEFAULT 0,
   meanings TEXT NOT NULL,
   "on" TEXT NOT NULL,
   kun TEXT NOT NULL
@@ -40,6 +41,16 @@ CREATE TABLE IF NOT EXISTS Review (
   FOREIGN KEY (character) REFERENCES Kanji (character) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS index_Review_character ON Review (character);
+
+-- Per-kanji user flags, separate from Srs because a never-studied kanji has no Srs row
+-- (see getNewCardsWithSrs) yet can still be favorited or suspended. Suspended kanji are
+-- excluded from the study queue; favorites are listed on the Favorites screen.
+CREATE TABLE IF NOT EXISTS KanjiFlag (
+  character TEXT PRIMARY KEY NOT NULL,
+  favorite INTEGER NOT NULL DEFAULT 0,
+  suspended INTEGER NOT NULL DEFAULT 0,
+  FOREIGN KEY (character) REFERENCES Kanji (character) ON DELETE CASCADE
+);
 `;
 
 // The prebuilt reference database, bundled in assets. It is generated offline by
@@ -76,6 +87,33 @@ export function getDb(): Promise<SQLite.SQLiteDatabase> {
 export async function initSchema(): Promise<void> {
   const db = await getDb();
   await db.execAsync(SCHEMA);
+}
+
+// Adds the kanken column to a pre-existing Kanji table and backfills it from the bundled
+// seed DB. Fresh installs already get the column (and its values) from SCHEMA + seeding, so
+// this is a no-op there: the missing column is the sole trigger. Must run after initSchema()
+// and before any query that reads kanken. Idempotent — once the column exists it returns.
+export async function migrateKankenColumn(): Promise<void> {
+  const db = await getDb();
+  const cols = await db.getAllAsync<{ name: string }>("PRAGMA table_info('Kanji')");
+  if (cols.some((c) => c.name === 'kanken')) return;
+
+  await db.execAsync('ALTER TABLE Kanji ADD COLUMN kanken INTEGER NOT NULL DEFAULT 0');
+  await importKanjiSeedDb();
+  const seedPath = `${SQLite.defaultDatabaseDirectory}/${KANJI_SEED_DB}`;
+  await db.runAsync('ATTACH DATABASE ? AS kseed', seedPath);
+  try {
+    // Both databases have a table named Kanji, so the outer table must be qualified as
+    // main.Kanji — an unqualified "Kanji" inside the subquery binds to kseed.Kanji instead,
+    // making the correlation always true and copying one arbitrary row's value into every row.
+    await db.execAsync(
+      `UPDATE Kanji SET kanken = (SELECT kanken FROM kseed.Kanji WHERE kseed.Kanji.character = main.Kanji.character)
+       WHERE main.Kanji.character IN (SELECT character FROM kseed.Kanji)`,
+    );
+  } finally {
+    await db.runAsync('DETACH DATABASE kseed');
+  }
+  await SQLite.deleteDatabaseAsync(KANJI_SEED_DB);
 }
 
 // Imports reference.db from the bundled asset into the SQLite directory on first launch

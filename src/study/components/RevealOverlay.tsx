@@ -25,7 +25,7 @@ export function RevealOverlay({
         <View style={[styles.revealCard, { backgroundColor: p.background }]}>
           <ScrollView contentContainerStyle={styles.revealScroll}>
             <Text style={[styles.bigGlyph, { color: p.text }]}>{kanji.character}</Text>
-            <MetaChips grade={kanji.grade} strokes={kanji.strokes} />
+            <MetaChips grade={kanji.grade} strokes={kanji.strokes} kanken={kanji.kanken} />
             <Readings kanji={kanji} style={styles.gap8} />
             {sentence && <SentenceCard sentence={sentence} style={styles.gap8} />}
           </ScrollView>

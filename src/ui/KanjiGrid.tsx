@@ -19,10 +19,13 @@ export function KanjiGrid({
   kanji,
   loading,
   onPress,
+  suspended,
 }: {
   kanji: KanjiWithSrs[];
   loading: boolean;
   onPress: (character: string) => void;
+  /** Characters to dim as suspended (excluded from study). */
+  suspended?: Set<string>;
 }) {
   const { width } = useWindowDimensions();
   const available = width - GAP * 2; // content padding sits on both edges
@@ -46,15 +49,35 @@ export function KanjiGrid({
       contentContainerStyle={{ padding: GAP }}
       columnWrapperStyle={numColumns > 1 ? { gap: GAP } : undefined}
       ItemSeparatorComponent={() => <View style={{ height: GAP }} />}
-      renderItem={({ item }) => <KanjiChip card={item} size={size} onPress={() => onPress(item.kanji.character)} />}
+      renderItem={({ item }) => (
+        <KanjiChip
+          card={item}
+          size={size}
+          suspended={suspended?.has(item.kanji.character) ?? false}
+          onPress={() => onPress(item.kanji.character)}
+        />
+      )}
     />
   );
 }
 
-function KanjiChip({ card, size, onPress }: { card: KanjiWithSrs; size: number; onPress: () => void }) {
+function KanjiChip({
+  card,
+  size,
+  suspended,
+  onPress,
+}: {
+  card: KanjiWithSrs;
+  size: number;
+  suspended: boolean;
+  onPress: () => void;
+}) {
   const bg = cardStateColors[srsOf(card).type];
   return (
-    <Pressable onPress={onPress} style={[styles.chip, { width: size, height: size, backgroundColor: bg }]}>
+    <Pressable
+      onPress={onPress}
+      style={[styles.chip, { width: size, height: size, backgroundColor: bg }, suspended && styles.suspended]}
+    >
       <Text style={styles.chipGlyph}>{card.kanji.character}</Text>
     </Pressable>
   );
@@ -63,5 +86,6 @@ function KanjiChip({ card, size, onPress }: { card: KanjiWithSrs; size: number; 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   chip: { borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  suspended: { opacity: 0.3 },
   chipGlyph: { fontSize: 24, fontWeight: '700', color: '#1A1A1A' },
 });

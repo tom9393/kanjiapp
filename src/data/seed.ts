@@ -19,8 +19,8 @@ export async function seedKanjiIfNeeded(): Promise<boolean> {
   try {
     // Single atomic statement — column order matches the bundled table (see build script).
     await db.execAsync(
-      `INSERT OR IGNORE INTO Kanji (character, strokes, grade, frequency, jlpt, meanings, "on", kun)
-       SELECT character, strokes, grade, frequency, jlpt, meanings, "on", kun FROM kseed.Kanji`,
+      `INSERT OR IGNORE INTO Kanji (character, strokes, grade, frequency, jlpt, kanken, meanings, "on", kun)
+       SELECT character, strokes, grade, frequency, jlpt, kanken, meanings, "on", kun FROM kseed.Kanji`,
     );
   } finally {
     await db.runAsync('DETACH DATABASE kseed');

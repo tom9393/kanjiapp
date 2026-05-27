@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { getKanjiWithSrs } from '@/data/repository/kanji';
+import { getFlags, setFavorite, setSuspended, KanjiFlags } from '@/data/repository/flags';
 import { getReviewHistory } from '@/data/repository/reviews';
 import { getSentencesForKanji, getWordsForKanji } from '@/data/repository/reference';
 import { ExampleSentence, KanjiWithSrs, Review, srsOf, Word } from '@/data/types';
@@ -31,6 +32,7 @@ export default function KanjiDetail() {
   const [history, setHistory] = useState<Review[]>([]);
   const [words, setWords] = useState<Word[]>([]);
   const [sentences, setSentences] = useState<ExampleSentence[]>([]);
+  const [flags, setFlags] = useState<KanjiFlags>({ favorite: false, suspended: false });
   const [wordsExpanded, setWordsExpanded] = useState(false);
   const [sentencesExpanded, setSentencesExpanded] = useState(false);
 
@@ -40,8 +42,20 @@ export default function KanjiDetail() {
       setHistory(await getReviewHistory(character));
       setWords(await getWordsForKanji(character));
       setSentences(await getSentencesForKanji(character));
+      setFlags(await getFlags(character));
     })();
   }, [character]);
+
+  const toggleFavorite = () => {
+    const next = !flags.favorite;
+    setFlags((f) => ({ ...f, favorite: next }));
+    setFavorite(character, next);
+  };
+  const toggleSuspended = () => {
+    const next = !flags.suspended;
+    setFlags((f) => ({ ...f, suspended: next }));
+    setSuspended(character, next);
+  };
 
   if (card === undefined) {
     return (
@@ -67,8 +81,13 @@ export default function KanjiDetail() {
   return (
     <ScrollView style={{ backgroundColor: p.background }} contentContainerStyle={styles.content}>
       <Text style={[styles.glyph, { color: p.text }]}>{card.kanji.character}</Text>
-      <MetaChips grade={card.kanji.grade} strokes={card.kanji.strokes} />
+      <MetaChips grade={card.kanji.grade} strokes={card.kanji.strokes} kanken={card.kanji.kanken} />
       <Readings kanji={card.kanji} style={styles.readings} />
+
+      <View style={[styles.flagRow, styles.section]}>
+        <FlagToggle label="★ Favorite" active={flags.favorite} onPress={toggleFavorite} />
+        <FlagToggle label="⏸ Suspend" active={flags.suspended} onPress={toggleSuspended} />
+      </View>
 
       <View style={[styles.statusCard, styles.section, { backgroundColor: p.surfaceVariant }]}>
         <View style={styles.statusHeader}>
@@ -162,6 +181,21 @@ function ShowMore({
   );
 }
 
+function FlagToggle({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+  const p = usePalette();
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[
+        styles.flagBtn,
+        { borderColor: active ? p.primary : p.border, backgroundColor: active ? p.primary : 'transparent' },
+      ]}
+    >
+      <Text style={[styles.flagLabel, { color: active ? p.onPrimary : p.text }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
 function StatusRow({ label, value }: { label: string; value: string }) {
   const p = usePalette();
   return (
@@ -177,6 +211,9 @@ const styles = StyleSheet.create({
   content: { padding: 16, alignItems: 'center' },
   glyph: { fontSize: 96, fontWeight: '700' },
   readings: { marginTop: 12 },
+  flagRow: { alignSelf: 'stretch', flexDirection: 'row', gap: 10 },
+  flagBtn: { flex: 1, borderWidth: 1, borderRadius: 10, paddingVertical: 10, alignItems: 'center' },
+  flagLabel: { fontSize: 14, fontWeight: '600' },
   statusCard: { alignSelf: 'stretch', borderRadius: 12, padding: 16 },
   statusHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   dot: { width: 12, height: 12, borderRadius: 6 },

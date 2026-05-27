@@ -7,6 +7,8 @@ export interface Kanji {
   grade: number;
   frequency: number;
   jlpt: number;
+  /** Kanji Kentei (漢検) level, ×10-encoded: 10級→100 … 1級→10, 準2級→25, 準1級→15, 0 = none. */
+  kanken: number;
   /** Comma-separated, joined in the seeder from a List<String>. */
   meanings: string;
   on: string;
@@ -73,4 +75,12 @@ export function srsOf(card: KanjiWithSrs): Srs {
  *  but the ~10k unranked kanji store 0, so map 0 to Infinity to sort them last instead of first. */
 export function frequencyRank(k: Kanji): number {
   return k.frequency || Infinity;
+}
+
+/** Decodes a ×10-encoded Kanji Kentei level into its display label, or null when there is none. */
+export function kankenLabel(kanken: number): string | null {
+  if (!kanken) return null;
+  if (kanken === 25) return 'pre-2';
+  if (kanken === 15) return 'pre-1';
+  return String(kanken / 10);
 }

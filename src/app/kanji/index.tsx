@@ -12,6 +12,7 @@ export default function KanjiBrowse() {
   const p = usePalette();
   const selectedGrade = useBrowseStore((s) => s.selectedGrade);
   const kanji = useBrowseStore((s) => s.kanji);
+  const suspended = useBrowseStore((s) => s.suspended);
   const loading = useBrowseStore((s) => s.loading);
   const selectGrade = useBrowseStore((s) => s.selectGrade);
 
@@ -37,7 +38,7 @@ export default function KanjiBrowse() {
           </Pressable>
         ))}
       </ScrollView>
-      <KanjiGrid kanji={kanji} loading={loading} onPress={openKanji} />
+      <KanjiGrid kanji={kanji} loading={loading} onPress={openKanji} suspended={suspended} />
     </View>
   );
 }

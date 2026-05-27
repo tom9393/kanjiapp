@@ -41,7 +41,7 @@ export function ReviewWriting() {
         </PromptHeader>
       ) : (
         <PromptHeader label="Write this kanji">
-          <MetaChips grade={card.card.kanji.grade} strokes={card.card.kanji.strokes} />
+          <MetaChips grade={card.card.kanji.grade} strokes={card.card.kanji.strokes} kanken={card.card.kanji.kanken} />
           <Readings kanji={card.card.kanji} style={flowStyles.gap8} />
         </PromptHeader>
       )}

@@ -20,6 +20,7 @@ export function mapKanji(r: any): Kanji {
     grade: r.grade,
     frequency: r.frequency,
     jlpt: r.jlpt,
+    kanken: r.kanken,
     meanings: r.meanings,
     on: r.on,
     kun: r.kun,

@@ -20,7 +20,7 @@ export function Presentation({ onBegin }: { onBegin: () => void }) {
     <View style={styles.fillPadded}>
       <ScrollView style={flowStyles.flex1} contentContainerStyle={{ alignItems: 'center' }}>
         <Text style={[flowStyles.bigGlyph, { color: p.text }]}>{kanji.character}</Text>
-        <MetaChips grade={kanji.grade} strokes={kanji.strokes} />
+        <MetaChips grade={kanji.grade} strokes={kanji.strokes} kanken={kanji.kanken} />
         <View style={[flowStyles.alignStart, flowStyles.gap8]}>
           <Readings kanji={kanji} />
           {sentence && <SentenceCard sentence={sentence} style={flowStyles.gap8} />}

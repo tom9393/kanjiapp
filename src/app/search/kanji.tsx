@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { getAllKanjiWithSrs } from '@/data/repository/kanji';
+import { getSuspendedCharacters } from '@/data/repository/flags';
 import { frequencyRank, KanjiWithSrs } from '@/data/types';
 import { matchesKanji, parseQuery } from '@/domain/search';
 import { KanjiGrid } from '@/ui/KanjiGrid';
@@ -16,14 +17,16 @@ export default function KanjiSearch() {
   const p = usePalette();
   const [query, setQuery] = useState('');
   const [all, setAll] = useState<KanjiWithSrs[]>([]);
+  const [suspended, setSuspended] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
-    getAllKanjiWithSrs().then((k) => {
+    Promise.all([getAllKanjiWithSrs(), getSuspendedCharacters()]).then(([k, s]) => {
       if (!active) return;
       k.sort((a, b) => frequencyRank(a.kanji) - frequencyRank(b.kanji)); // most common first
       setAll(k);
+      setSuspended(s);
       setLoading(false);
     });
     return () => {
@@ -59,7 +62,7 @@ export default function KanjiSearch() {
       ) : results.length === 0 && !loading ? (
         <Text style={[styles.note, { color: p.textSecondary }]}>No matching kanji.</Text>
       ) : (
-        <KanjiGrid kanji={results} loading={loading} onPress={openKanji} />
+        <KanjiGrid kanji={results} loading={loading} onPress={openKanji} suspended={suspended} />
       )}
     </View>
   );

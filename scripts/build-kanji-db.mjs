@@ -39,6 +39,8 @@ function parseArgs() {
 }
 
 // Matches the runtime Kanji table (src/data/db.ts). "on" is quoted (SQLite keyword).
+// kanken is the Kanji Kentei (漢検) level, ×10-encoded (10級→100 … 1級→10, 準2級→25,
+// 準1級→15, 0 = no level); merged into kanji.json from kanjium's kanjidict.txt (CC BY-SA 4.0).
 const SCHEMA = `
 CREATE TABLE Kanji (
   character TEXT PRIMARY KEY NOT NULL,
@@ -46,6 +48,7 @@ CREATE TABLE Kanji (
   grade INTEGER NOT NULL,
   frequency INTEGER NOT NULL,
   jlpt INTEGER NOT NULL,
+  kanken INTEGER NOT NULL DEFAULT 0,
   meanings TEXT NOT NULL,
   "on" TEXT NOT NULL,
   kun TEXT NOT NULL
@@ -70,8 +73,8 @@ function main() {
   db.exec(SCHEMA);
   // Same column order seed.ts copies with; arrays pre-joined exactly as seed.ts did.
   const insert = db.prepare(
-    `INSERT OR IGNORE INTO Kanji (character, strokes, grade, frequency, jlpt, meanings, "on", kun)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT OR IGNORE INTO Kanji (character, strokes, grade, frequency, jlpt, kanken, meanings, "on", kun)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
 
   let rows = 0;
@@ -83,6 +86,7 @@ function main() {
       k.grade,
       k.frequency,
       k.jlpt,
+      k.kanken ?? 0,
       (k.meanings ?? []).join(', '),
       (k.on ?? []).join(', '),
       (k.kun ?? []).join(', '),

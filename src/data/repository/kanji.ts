@@ -30,7 +30,8 @@ export async function getDueCardsWithSrs(currentTime: number): Promise<KanjiWith
     `SELECT k.*, s.type AS s_type, s.due AS s_due, s.interval AS s_interval,
             s.factor AS s_factor, s.lapses AS s_lapses
      FROM Kanji k INNER JOIN Srs s ON k.character = s.character
-     WHERE s.due <= ?`,
+     WHERE s.due <= ?
+       AND s.character NOT IN (SELECT character FROM KanjiFlag WHERE suspended = 1)`,
     [currentTime],
   );
   return rows.map(mapKanjiWithSrs);
@@ -39,7 +40,8 @@ export async function getDueCardsWithSrs(currentTime: number): Promise<KanjiWith
 export async function getNewCardsWithSrs(limit: number): Promise<KanjiWithSrs[]> {
   const db = await getDb();
   const rows = await db.getAllAsync<any>(
-    'SELECT * FROM Kanji WHERE character NOT IN (SELECT character FROM Srs) LIMIT ?',
+    `SELECT * FROM Kanji WHERE character NOT IN (SELECT character FROM Srs)
+       AND character NOT IN (SELECT character FROM KanjiFlag WHERE suspended = 1) LIMIT ?`,
     [limit],
   );
   return rows.map(mapKanjiWithSrs); // rawSrs is null (no s_* columns)
@@ -97,14 +99,19 @@ export async function deleteSrs(character: string): Promise<void> {
 
 export async function countDueCards(currentTime: number): Promise<number> {
   const db = await getDb();
-  const row = await db.getFirstAsync<{ c: number }>('SELECT COUNT(*) AS c FROM Srs WHERE due <= ?', [currentTime]);
+  const row = await db.getFirstAsync<{ c: number }>(
+    `SELECT COUNT(*) AS c FROM Srs WHERE due <= ?
+       AND character NOT IN (SELECT character FROM KanjiFlag WHERE suspended = 1)`,
+    [currentTime],
+  );
   return row?.c ?? 0;
 }
 
 export async function countNewCards(): Promise<number> {
   const db = await getDb();
   const row = await db.getFirstAsync<{ c: number }>(
-    'SELECT COUNT(*) AS c FROM Kanji WHERE character NOT IN (SELECT character FROM Srs)',
+    `SELECT COUNT(*) AS c FROM Kanji WHERE character NOT IN (SELECT character FROM Srs)
+       AND character NOT IN (SELECT character FROM KanjiFlag WHERE suspended = 1)`,
   );
   return row?.c ?? 0;
 }

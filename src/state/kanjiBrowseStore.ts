@@ -1,6 +1,7 @@
 // Ported from kanji/logic/KanjiScreenViewModel.kt — grade browse mode.
 import { create } from 'zustand';
 import { getAllKanjiWithSrs } from '@/data/repository/kanji';
+import { getSuspendedCharacters } from '@/data/repository/flags';
 import { KanjiWithSrs } from '@/data/types';
 
 export interface GradeTab {
@@ -23,6 +24,7 @@ interface BrowseStore {
   selectedGrade: number;
   allKanji: KanjiWithSrs[];
   kanji: KanjiWithSrs[];
+  suspended: Set<string>;
   loading: boolean;
 
   selectGrade: (grade: number) => void;
@@ -37,12 +39,14 @@ export const useBrowseStore = create<BrowseStore>((set, get) => {
     selectedGrade: 1,
     allKanji: [],
     kanji: [],
+    suspended: new Set<string>(),
     loading: true,
 
     init: async () => {
       // Match the old per-grade query's frequency ordering, then filter in memory.
-      const allKanji = (await getAllKanjiWithSrs()).sort((a, b) => a.kanji.frequency - b.kanji.frequency);
-      set({ allKanji, loading: false, kanji: allKanji.filter((k) => k.kanji.grade === get().selectedGrade) });
+      const [all, suspended] = await Promise.all([getAllKanjiWithSrs(), getSuspendedCharacters()]);
+      const allKanji = all.sort((a, b) => a.kanji.frequency - b.kanji.frequency);
+      set({ allKanji, suspended, loading: false, kanji: allKanji.filter((k) => k.kanji.grade === get().selectedGrade) });
     },
 
     selectGrade: (grade) => {
