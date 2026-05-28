@@ -6,6 +6,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-nat
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { canStudy, useFrontpageStore } from '@/state/frontpageStore';
+import { LoadRequest } from '@/state/studyStore';
 import { Divider, StatBox, StatCard, shared } from '@/stats/primitives';
 import { Btn } from '@/study/components/Btn';
 import { usePalette } from '@/ui/theme';
@@ -41,6 +42,8 @@ export default function Frontpage() {
   const todayCorrect = todayReviews - todayAgain;
   const retentionPct = todayReviews > 0 ? Math.round((todayCorrect / todayReviews) * 100) : 0;
 
+  const startStudy = (req: LoadRequest) => router.push({ pathname: '/study', params: { req: JSON.stringify(req) } });
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: p.background }]} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -74,12 +77,12 @@ export default function Frontpage() {
           <Text style={[styles.count, { color: p.text }]}>{`${newCount} new cards to study`}</Text>
           <View style={{ height: 12 }} />
           {canStudy({ dueCount, newCount }) ? (
-            <Btn label="Begin studying" onPress={() => router.push('/study')} />
+            <Btn label="Begin studying" onPress={() => startStudy({ kind: 'dueAndNew' })} />
           ) : extraAvailable ? (
             <>
               <Text style={[styles.note, { color: p.textSecondary }]}>Daily limit reached. Study 10 more cards?</Text>
               <View style={{ height: 8 }} />
-              <Btn label="Study 10 more" onPress={() => router.push({ pathname: '/study', params: { extra: '10' } })} />
+              <Btn label="Study 10 more" onPress={() => startStudy({ kind: 'extra', n: 10 })} />
             </>
           ) : (
             <Text style={[styles.note, { color: p.textSecondary }]}>All caught up. Nothing to study right now.</Text>

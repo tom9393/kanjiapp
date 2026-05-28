@@ -4,8 +4,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import type { LevelField } from '@/data/repository/kanji';
 import { CUSTOM_CHUNK_SIZE, listCustomChunks } from '@/domain/studyQueueSource';
+import { LoadRequest } from '@/state/studyStore';
 import { findCategory, findLevel } from '@/study/customLevels';
 import { usePalette } from '@/ui/theme';
 
@@ -60,11 +60,13 @@ export default function CustomChunkPicker() {
     );
   }
 
-  const start = (chunk: Chunk, index: number) => {
-    router.push({
-      pathname: '/study',
-      params: { custom: `${category.field as LevelField}:${level.value}:${index}` },
-    });
+  const start = (index: number) => {
+    const req: LoadRequest = {
+      kind: 'custom',
+      filter: { category: category.field, level: level.value },
+      chunk: index,
+    };
+    router.push({ pathname: '/study', params: { req: JSON.stringify(req) } });
   };
 
   return (
@@ -79,7 +81,7 @@ export default function CustomChunkPicker() {
         return (
           <Pressable
             key={chunk.start}
-            onPress={() => start(chunk, i)}
+            onPress={() => start(i)}
             style={({ pressed }) => [
               styles.row,
               { backgroundColor: p.surfaceVariant, borderColor: p.border },
