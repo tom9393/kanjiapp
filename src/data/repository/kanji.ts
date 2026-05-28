@@ -18,6 +18,14 @@ export async function getCharacterByYearWithSrs(year: number): Promise<KanjiWith
   return rows.map(mapKanjiWithSrs);
 }
 
+export type LevelField = 'grade' | 'jlpt' | 'kanken';
+
+export async function getCharactersByLevelWithSrs(field: LevelField, value: number): Promise<KanjiWithSrs[]> {
+  const db = await getDb();
+  const rows = await db.getAllAsync<any>(`${JOIN_SELECT} WHERE k.${field} = ?`, [value]);
+  return rows.map(mapKanjiWithSrs);
+}
+
 export async function getKanjiWithSrs(character: string): Promise<KanjiWithSrs | null> {
   const db = await getDb();
   const row = await db.getFirstAsync<any>(`${JOIN_SELECT} WHERE k.character = ?`, [character]);

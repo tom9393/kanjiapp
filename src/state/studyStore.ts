@@ -12,7 +12,8 @@ import { create } from 'zustand';
 export type LoadRequest =
   | { kind: 'dueAndNew' }
   | { kind: 'year'; year: number }
-  | { kind: 'extra'; n: number };
+  | { kind: 'extra'; n: number }
+  | { kind: 'custom'; filter: queue.CustomFilter; chunk: number };
 
 async function loadCards(req: LoadRequest): Promise<CardWithContext[]> {
   switch (req.kind) {
@@ -20,6 +21,8 @@ async function loadCards(req: LoadRequest): Promise<CardWithContext[]> {
       return queue.loadByYear(req.year);
     case 'extra':
       return queue.loadExtra(req.n);
+    case 'custom':
+      return queue.loadCustomChunk(req.filter, req.chunk);
     case 'dueAndNew':
       return queue.loadDueAndNew();
   }
@@ -43,7 +46,7 @@ export const useStudyStore = create<StudyStore>((set, get) => ({
     set({ active: null });
     const cards = await loadCards(req);
     if (cards.length === 0) return;
-    set({ active: { queue: cards, history: [] } });
+    set({ active: { queue: cards, history: [], noSrs: req.kind === 'custom' } });
   },
 
   submitAnswer: async (ease) => {
@@ -52,16 +55,18 @@ export const useStudyStore = create<StudyStore>((set, get) => ({
     const current = active.queue[0] ?? null;
     if (!current) return;
 
-    const newSrs = await calculateNewState(srsOf(current.card), ease);
-    await recordAnswer(newSrs, {
-      id: Date.now(),
-      character: current.card.kanji.character,
-      updateSequenceNumber: 0,
-      type: newSrs.type,
-      interval: newSrs.interval,
-      factor: newSrs.factor,
-      ease,
-    });
+    if (!active.noSrs) {
+      const newSrs = await calculateNewState(srsOf(current.card), ease);
+      await recordAnswer(newSrs, {
+        id: Date.now(),
+        character: current.card.kanji.character,
+        updateSequenceNumber: 0,
+        type: newSrs.type,
+        interval: newSrs.interval,
+        factor: newSrs.factor,
+        ease,
+      });
+    }
 
     const wasShifted = ease === CardEase.Again;
     const remaining = active.queue.slice(1);
@@ -69,6 +74,7 @@ export const useStudyStore = create<StudyStore>((set, get) => ({
       active: {
         queue: wasShifted ? [...remaining, current] : remaining,
         history: [...active.history, { originalCard: current, wasShifted }],
+        noSrs: active.noSrs,
       },
     });
   },
@@ -81,10 +87,13 @@ export const useStudyStore = create<StudyStore>((set, get) => ({
     const restored: Session = {
       queue: [last.originalCard, ...(last.wasShifted ? active.queue.slice(0, -1) : active.queue)],
       history: active.history.slice(0, -1),
+      noSrs: active.noSrs,
     };
 
-    const card = last.originalCard.card;
-    await eraseAnswer(card.kanji.character, card.rawSrs);
+    if (!active.noSrs) {
+      const card = last.originalCard.card;
+      await eraseAnswer(card.kanji.character, card.rawSrs);
+    }
 
     set({ active: restored });
   },
@@ -92,8 +101,10 @@ export const useStudyStore = create<StudyStore>((set, get) => ({
   canUndoCurrent: () => {
     const a = get().active;
     if (!a) return false;
+    if (a.history.length === 0) return false;
+    if (a.noSrs) return true;
     const c = a.queue[0] ?? null;
-    return a.history.length > 0 && !!c && srsOf(c.card).type === CardState.REVIEW;
+    return !!c && srsOf(c.card).type === CardState.REVIEW;
   },
 
   studyStatus: () => {

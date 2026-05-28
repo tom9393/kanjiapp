@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePalette } from '@/ui/theme';
 
 const ITEMS: { label: string; path: Href }[] = [
+  { label: 'Custom Study', path: '/custom' },
   { label: 'Browse Kanji', path: '/kanji' },
   { label: 'Browse Radicals', path: '/radicals' },
   { label: 'Favorites', path: '/favorites' },

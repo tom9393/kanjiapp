@@ -20,4 +20,6 @@ export interface StudyHistoryItem {
 export interface Session {
   queue: CardWithContext[];
   history: StudyHistoryItem[];
+  /** When true, answering a card advances the queue locally without touching SRS / reviews. */
+  noSrs?: boolean;
 }

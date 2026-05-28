@@ -5,20 +5,28 @@ import {
   countDueCards,
   countNewCards,
   getCharacterByYearWithSrs,
+  getCharactersByLevelWithSrs,
   getDueCardsWithSrs,
   getKanjiByCharacters,
   getNewCardsWithSrs,
   getStudiedCharacters,
+  type LevelField,
 } from '@/data/repository/kanji';
 import { getSentenceContaining, getWordsForKanji } from '@/data/repository/reference';
 import { countNewCardsStudiedToday } from '@/data/repository/reviews';
-import { Kanji, KanjiWithSrs } from '@/data/types';
+import { frequencyRank, Kanji, KanjiWithSrs } from '@/data/types';
 import { getDailyResetMs } from '@/settings/preferences';
 import * as settings from '@/settings/settingsProvider';
 import { CardWithContext, WordWithSentence } from './models';
 import { formatWordReading, isKanji } from './readingFormatter';
 
 const WORD_OPTIONS_PER_CARD = 5;
+export const CUSTOM_CHUNK_SIZE = 10;
+
+export interface CustomFilter {
+  category: LevelField;
+  level: number;
+}
 
 export interface TodayCounts {
   dueCount: number;
@@ -50,6 +58,26 @@ export async function loadByYear(year: number): Promise<CardWithContext[]> {
 
 export async function loadExtra(n: number): Promise<CardWithContext[]> {
   return hydrateAll(await getNewCardsWithSrs(n));
+}
+
+async function loadCustomSorted(filter: CustomFilter): Promise<KanjiWithSrs[]> {
+  const all = await getCharactersByLevelWithSrs(filter.category, filter.level);
+  return all.sort((a, b) => frequencyRank(a.kanji) - frequencyRank(b.kanji));
+}
+
+export async function listCustomChunks(filter: CustomFilter): Promise<{ start: number; characters: string[] }[]> {
+  const sorted = await loadCustomSorted(filter);
+  const chunks: { start: number; characters: string[] }[] = [];
+  for (let i = 0; i < sorted.length; i += CUSTOM_CHUNK_SIZE) {
+    chunks.push({ start: i, characters: sorted.slice(i, i + CUSTOM_CHUNK_SIZE).map((k) => k.kanji.character) });
+  }
+  return chunks;
+}
+
+export async function loadCustomChunk(filter: CustomFilter, chunkIndex: number): Promise<CardWithContext[]> {
+  const sorted = await loadCustomSorted(filter);
+  const start = chunkIndex * CUSTOM_CHUNK_SIZE;
+  return hydrateAll(sorted.slice(start, start + CUSTOM_CHUNK_SIZE));
 }
 
 async function hydrateAll(cards: KanjiWithSrs[]): Promise<CardWithContext[]> {
