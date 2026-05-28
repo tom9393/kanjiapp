@@ -6,12 +6,18 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 
 import { getKanjiWithSrs } from '@/data/repository/kanji';
 import { getFlags, setFavorite, setSuspended, KanjiFlags } from '@/data/repository/flags';
+import {
+  getLists,
+  getListIdsContaining,
+  KanjiListSummary,
+} from '@/data/repository/lists';
 import { getReviewHistory } from '@/data/repository/reviews';
 import { getSentencesForKanji, getWordsForKanji } from '@/data/repository/reference';
 import { ExampleSentence, KanjiWithSrs, Review, srsOf, Word } from '@/data/types';
 import { CardState } from '@/domain/cardState';
 import { MetaChips } from '@/study/components/MetaChips';
 import { Readings } from '@/study/components/Readings';
+import { AddToListModal } from '@/ui/AddToListModal';
 import { Furigana } from '@/ui/Furigana';
 import { RadicalTree } from '@/ui/RadicalTree';
 import { cardStateColors, usePalette } from '@/ui/theme';
@@ -34,8 +40,11 @@ export default function KanjiDetail() {
   const [words, setWords] = useState<Word[]>([]);
   const [sentences, setSentences] = useState<ExampleSentence[]>([]);
   const [flags, setFlags] = useState<KanjiFlags>({ favorite: false, suspended: false });
+  const [lists, setLists] = useState<KanjiListSummary[]>([]);
+  const [memberOf, setMemberOf] = useState<Set<number>>(new Set());
   const [wordsExpanded, setWordsExpanded] = useState(false);
   const [sentencesExpanded, setSentencesExpanded] = useState(false);
+  const [listModalOpen, setListModalOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -44,6 +53,8 @@ export default function KanjiDetail() {
       setWords(await getWordsForKanji(character));
       setSentences(await getSentencesForKanji(character));
       setFlags(await getFlags(character));
+      setLists(await getLists());
+      setMemberOf(await getListIdsContaining(character));
     })();
   }, [character]);
 
@@ -107,6 +118,32 @@ export default function KanjiDetail() {
         )}
         <StatusRow label="Reviews" value={`${history.length}`} />
       </View>
+
+      <Pressable
+        onPress={() => setListModalOpen(true)}
+        style={({ pressed }) => [
+          styles.addToListBtn,
+          styles.section,
+          { borderColor: p.border, backgroundColor: p.surfaceVariant },
+          pressed && { opacity: 0.7 },
+        ]}
+      >
+        <Text style={[styles.addToListLabel, { color: p.text }]}>
+          {memberOf.size === 0 ? '+ Add to list' : `In ${memberOf.size} list${memberOf.size === 1 ? '' : 's'} — edit`}
+        </Text>
+      </Pressable>
+
+      <AddToListModal
+        visible={listModalOpen}
+        character={character}
+        lists={lists}
+        memberOf={memberOf}
+        onChange={(nextMembers, nextLists) => {
+          setMemberOf(nextMembers);
+          setLists(nextLists);
+        }}
+        onClose={() => setListModalOpen(false)}
+      />
 
       <RadicalTree character={card.kanji.character} />
 
@@ -231,4 +268,12 @@ const styles = StyleSheet.create({
   sentenceText: { flex: 1 },
   sentenceJp: { fontSize: 16, lineHeight: 24 },
   showMore: { paddingTop: 10 },
+  addToListBtn: {
+    alignSelf: 'stretch',
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  addToListLabel: { fontSize: 15, fontWeight: '600' },
 });

@@ -51,6 +51,24 @@ CREATE TABLE IF NOT EXISTS KanjiFlag (
   suspended INTEGER NOT NULL DEFAULT 0,
   FOREIGN KEY (character) REFERENCES Kanji (character) ON DELETE CASCADE
 );
+
+-- User-created study lists. A kanji can belong to multiple lists, so membership
+-- lives in its own table with a composite key.
+CREATE TABLE IF NOT EXISTS KanjiList (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  createdAt INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS KanjiListMember (
+  listId INTEGER NOT NULL,
+  character TEXT NOT NULL,
+  addedAt INTEGER NOT NULL,
+  PRIMARY KEY (listId, character),
+  FOREIGN KEY (listId) REFERENCES KanjiList (id) ON DELETE CASCADE,
+  FOREIGN KEY (character) REFERENCES Kanji (character) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS index_KanjiListMember_character ON KanjiListMember (character);
 `;
 
 // The prebuilt reference database, bundled in assets. It is generated offline by

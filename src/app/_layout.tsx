@@ -50,6 +50,9 @@ export default function RootLayout() {
               <Stack.Screen name="complete" options={{ title: 'Complete', headerBackVisible: false }} />
               <Stack.Screen name="custom/index" options={{ title: 'Custom Study' }} />
               <Stack.Screen name="custom/[category]/[level]" options={{ title: 'Custom Study' }} />
+              <Stack.Screen name="lists/index" options={{ title: 'My Lists' }} />
+              <Stack.Screen name="lists/[id]" options={{ title: 'List' }} />
+              <Stack.Screen name="lists/[id]/add" options={{ title: 'Add Kanji' }} />
               <Stack.Screen name="kanji/index" options={{ title: 'Browse Kanji' }} />
               <Stack.Screen name="radicals/index" options={{ title: 'Browse Radicals' }} />
               <Stack.Screen name="radicals/[radical]" options={{ title: 'Radical' }} />

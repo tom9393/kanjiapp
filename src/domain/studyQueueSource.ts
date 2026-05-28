@@ -12,6 +12,7 @@ import {
   getStudiedCharacters,
   type LevelField,
 } from '@/data/repository/kanji';
+import { getListMembers } from '@/data/repository/lists';
 import { getSentenceContaining, getWordsForKanji } from '@/data/repository/reference';
 import { countNewCardsStudiedToday } from '@/data/repository/reviews';
 import { frequencyRank, Kanji, KanjiWithSrs } from '@/data/types';
@@ -58,6 +59,12 @@ export async function loadByYear(year: number): Promise<CardWithContext[]> {
 
 export async function loadExtra(n: number): Promise<CardWithContext[]> {
   return hydrateAll(await getNewCardsWithSrs(n));
+}
+
+export async function loadList(listId: number): Promise<CardWithContext[]> {
+  const members = await getListMembers(listId);
+  members.sort((a, b) => frequencyRank(a.kanji) - frequencyRank(b.kanji));
+  return hydrateAll(members);
 }
 
 async function loadCustomSorted(filter: CustomFilter): Promise<KanjiWithSrs[]> {

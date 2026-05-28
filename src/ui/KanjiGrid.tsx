@@ -19,11 +19,13 @@ export function KanjiGrid({
   kanji,
   loading,
   onPress,
+  onLongPress,
   suspended,
 }: {
   kanji: KanjiWithSrs[];
   loading: boolean;
   onPress: (character: string) => void;
+  onLongPress?: (character: string) => void;
   /** Characters to dim as suspended (excluded from study). */
   suspended?: Set<string>;
 }) {
@@ -55,6 +57,7 @@ export function KanjiGrid({
           size={size}
           suspended={suspended?.has(item.kanji.character) ?? false}
           onPress={() => onPress(item.kanji.character)}
+          onLongPress={onLongPress ? () => onLongPress(item.kanji.character) : undefined}
         />
       )}
     />
@@ -66,16 +69,19 @@ function KanjiChip({
   size,
   suspended,
   onPress,
+  onLongPress,
 }: {
   card: KanjiWithSrs;
   size: number;
   suspended: boolean;
   onPress: () => void;
+  onLongPress?: () => void;
 }) {
   const bg = cardStateColors[srsOf(card).type];
   return (
     <Pressable
       onPress={onPress}
+      onLongPress={onLongPress}
       style={[styles.chip, { width: size, height: size, backgroundColor: bg }, suspended && styles.suspended]}
     >
       <Text style={styles.chipGlyph}>{card.kanji.character}</Text>

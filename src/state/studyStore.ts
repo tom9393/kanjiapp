@@ -13,7 +13,8 @@ export type LoadRequest =
   | { kind: 'dueAndNew' }
   | { kind: 'year'; year: number }
   | { kind: 'extra'; n: number }
-  | { kind: 'custom'; filter: queue.CustomFilter; chunk: number };
+  | { kind: 'custom'; filter: queue.CustomFilter; chunk: number }
+  | { kind: 'list'; listId: number };
 
 async function loadCards(req: LoadRequest): Promise<CardWithContext[]> {
   switch (req.kind) {
@@ -23,6 +24,8 @@ async function loadCards(req: LoadRequest): Promise<CardWithContext[]> {
       return queue.loadExtra(req.n);
     case 'custom':
       return queue.loadCustomChunk(req.filter, req.chunk);
+    case 'list':
+      return queue.loadList(req.listId);
     case 'dueAndNew':
       return queue.loadDueAndNew();
   }
@@ -46,7 +49,7 @@ export const useStudyStore = create<StudyStore>((set, get) => ({
     set({ active: null });
     const cards = await loadCards(req);
     if (cards.length === 0) return;
-    set({ active: { queue: cards, history: [], noSrs: req.kind === 'custom' } });
+    set({ active: { queue: cards, history: [], noSrs: req.kind === 'custom' || req.kind === 'list' } });
   },
 
   submitAnswer: async (ease) => {
