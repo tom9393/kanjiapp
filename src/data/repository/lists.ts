@@ -1,9 +1,11 @@
-// User-created study lists. A kanji can appear in any number of lists; membership
-// rows are keyed by (listId, character). Member reads join through Kanji + Srs so
-// callers can drop the result straight into KanjiGrid.
+// User-created study lists. A list can hold kanji members (joined through Kanji + Srs
+// so the rows drop straight into KanjiGrid) and word members (resolved against the
+// read-only reference.db by id). Membership tables are keyed by (listId, character)
+// and (listId, wordId) respectively.
 import { getDb } from '@/data/db';
-import { KanjiWithSrs } from '@/data/types';
+import { KanjiWithSrs, Word } from '@/data/types';
 import { JOIN_SELECT, mapKanjiWithSrs } from '@/data/repository/mappers';
+import { getWordsByIds } from '@/data/repository/reference';
 
 export interface KanjiList {
   id: number;
@@ -19,7 +21,8 @@ export async function getLists(): Promise<KanjiListSummary[]> {
   const db = await getDb();
   const rows = await db.getAllAsync<{ id: number; name: string; createdAt: number; memberCount: number }>(
     `SELECT l.id, l.name, l.createdAt,
-            (SELECT COUNT(*) FROM KanjiListMember m WHERE m.listId = l.id) AS memberCount
+            ((SELECT COUNT(*) FROM KanjiListMember m WHERE m.listId = l.id)
+              + (SELECT COUNT(*) FROM WordListMember w WHERE w.listId = l.id)) AS memberCount
      FROM KanjiList l ORDER BY l.createdAt DESC`,
   );
   return rows;
@@ -92,6 +95,49 @@ export async function getListIdsContaining(character: string): Promise<Set<numbe
   const rows = await db.getAllAsync<{ listId: number }>(
     'SELECT listId FROM KanjiListMember WHERE character = ?',
     [character],
+  );
+  return new Set(rows.map((r) => r.listId));
+}
+
+export async function getListWordIds(listId: number): Promise<number[]> {
+  const db = await getDb();
+  const rows = await db.getAllAsync<{ wordId: number }>(
+    'SELECT wordId FROM WordListMember WHERE listId = ? ORDER BY addedAt ASC',
+    [listId],
+  );
+  return rows.map((r) => r.wordId);
+}
+
+export async function getListWords(listId: number): Promise<Word[]> {
+  const ids = await getListWordIds(listId);
+  if (ids.length === 0) return [];
+  const words = await getWordsByIds(ids);
+  // Preserve list order (oldest addition first); getWordsByIds returns DB order.
+  const byId = new Map(words.map((w) => [w.id, w]));
+  return ids.map((id) => byId.get(id)).filter((w): w is Word => w != null);
+}
+
+export async function addWordToList(listId: number, wordId: number): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    'INSERT OR IGNORE INTO WordListMember (listId, wordId, addedAt) VALUES (?, ?, ?)',
+    [listId, wordId, Date.now()],
+  );
+}
+
+export async function removeWordFromList(listId: number, wordId: number): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    'DELETE FROM WordListMember WHERE listId = ? AND wordId = ?',
+    [listId, wordId],
+  );
+}
+
+export async function getListIdsContainingWord(wordId: number): Promise<Set<number>> {
+  const db = await getDb();
+  const rows = await db.getAllAsync<{ listId: number }>(
+    'SELECT listId FROM WordListMember WHERE wordId = ?',
+    [wordId],
   );
   return new Set(rows.map((r) => r.listId));
 }

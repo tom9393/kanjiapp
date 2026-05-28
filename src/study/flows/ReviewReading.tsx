@@ -20,7 +20,7 @@ export function ReviewReading() {
   const canUndoCurrent = useStudyStore((s) => s.canUndoCurrent);
   const target = useMemo(
     () => card.examples[Math.floor(Math.random() * card.examples.length)],
-    [card.card.kanji.character],
+    [card.cardId],
   );
   const p = usePalette();
 
@@ -35,7 +35,7 @@ export function ReviewReading() {
         {target && <SentenceCard sentence={target.sentence} />}
       </PromptHeader>
 
-      <DrawingArea key={card.card.kanji.character} />
+      <DrawingArea key={card.cardId} />
 
       <View style={flowStyles.bottomRow}>
         <Btn label="Undo" variant="outlined" onPress={undo} disabled={!canUndoCurrent()} />

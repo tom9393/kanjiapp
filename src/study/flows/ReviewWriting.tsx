@@ -20,7 +20,7 @@ export function ReviewWriting() {
   const undo = useStudyStore((s) => s.undo);
   const submitAnswer = useStudyStore((s) => s.submitAnswer);
   const canUndoCurrent = useStudyStore((s) => s.canUndoCurrent);
-  const target = useMemo(() => card.examples[0] ?? null, [card.card.kanji.character]);
+  const target = useMemo(() => card.examples[0] ?? null, [card.cardId]);
   const p = usePalette();
 
   return (
@@ -46,7 +46,7 @@ export function ReviewWriting() {
         </PromptHeader>
       )}
 
-      <DrawingArea key={card.card.kanji.character} />
+      <DrawingArea key={card.cardId} />
 
       <View style={flowStyles.bottomRow}>
         <Btn label="Undo" variant="outlined" onPress={undo} disabled={!canUndoCurrent()} />

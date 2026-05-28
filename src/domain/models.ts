@@ -10,6 +10,10 @@ export interface WordWithSentence {
 export interface CardWithContext {
   card: KanjiWithSrs;
   examples: WordWithSentence[];
+  /** Stable identifier for React keys: kanji character, or `w${wordId}` for word-locked cards. */
+  cardId: string;
+  /** Word-list entries route through the Review flow even when their anchor kanji is NEW. */
+  forceReview?: boolean;
 }
 
 export interface StudyHistoryItem {

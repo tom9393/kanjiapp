@@ -69,6 +69,17 @@ CREATE TABLE IF NOT EXISTS KanjiListMember (
   FOREIGN KEY (character) REFERENCES Kanji (character) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS index_KanjiListMember_character ON KanjiListMember (character);
+
+-- Words live in the read-only reference.db, so wordId is just an integer reference
+-- (no foreign key) — membership rows are resolved by looking the id up there.
+CREATE TABLE IF NOT EXISTS WordListMember (
+  listId INTEGER NOT NULL,
+  wordId INTEGER NOT NULL,
+  addedAt INTEGER NOT NULL,
+  PRIMARY KEY (listId, wordId),
+  FOREIGN KEY (listId) REFERENCES KanjiList (id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS index_WordListMember_wordId ON WordListMember (wordId);
 `;
 
 // The prebuilt reference database, bundled in assets. It is generated offline by

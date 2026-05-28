@@ -5,9 +5,15 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { getKanjiByCharacters } from '@/data/repository/kanji';
+import {
+  getLists,
+  getListIdsContainingWord,
+  KanjiListSummary,
+} from '@/data/repository/lists';
 import { getSentencesContainingWord, getWordById } from '@/data/repository/reference';
 import { ExampleSentence, Kanji, Word } from '@/data/types';
 import { isKanji } from '@/domain/readingFormatter';
+import { AddToListModal } from '@/ui/AddToListModal';
 import { Furigana } from '@/ui/Furigana';
 import { usePalette } from '@/ui/theme';
 
@@ -21,6 +27,9 @@ export default function WordDetail() {
   const [kanji, setKanji] = useState<Kanji[]>([]);
   const [sentences, setSentences] = useState<ExampleSentence[]>([]);
   const [sentencesExpanded, setSentencesExpanded] = useState(false);
+  const [lists, setLists] = useState<KanjiListSummary[]>([]);
+  const [memberOf, setMemberOf] = useState<Set<number>>(new Set());
+  const [listModalOpen, setListModalOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -37,9 +46,12 @@ export default function WordDetail() {
       const ordered = chars.map((c) => byChar.get(c)).filter((k): k is Kanji => k != null);
 
       const found2 = await getSentencesContainingWord(w);
+      const [allLists, inLists] = await Promise.all([getLists(), getListIdsContainingWord(w.id)]);
       if (active) {
         setKanji(ordered);
         setSentences(found2);
+        setLists(allLists);
+        setMemberOf(inLists);
       }
     })();
     return () => {
@@ -71,6 +83,32 @@ export default function WordDetail() {
     <ScrollView style={{ backgroundColor: p.background }} contentContainerStyle={styles.content}>
       <Furigana form={word.kanjiForm} reading={word.kana} size={56} weight="700" />
       <Text style={[styles.meaning, { color: p.text }]}>{word.meaning}</Text>
+
+      <Pressable
+        onPress={() => setListModalOpen(true)}
+        style={({ pressed }) => [
+          styles.addToListBtn,
+          styles.section,
+          { borderColor: p.border, backgroundColor: p.surfaceVariant },
+          pressed && { opacity: 0.7 },
+        ]}
+      >
+        <Text style={[styles.addToListLabel, { color: p.text }]}>
+          {memberOf.size === 0 ? '+ Add to list' : `In ${memberOf.size} list${memberOf.size === 1 ? '' : 's'} — edit`}
+        </Text>
+      </Pressable>
+
+      <AddToListModal
+        visible={listModalOpen}
+        target={{ kind: 'word', id: word.id, label: word.kanjiForm }}
+        lists={lists}
+        memberOf={memberOf}
+        onChange={(nextMembers, nextLists) => {
+          setMemberOf(nextMembers);
+          setLists(nextLists);
+        }}
+        onClose={() => setListModalOpen(false)}
+      />
 
       {kanji.length > 0 && (
         <View style={[styles.card, styles.section, { backgroundColor: p.surfaceVariant }]}>
@@ -135,4 +173,12 @@ const styles = StyleSheet.create({
   sentenceText: { flex: 1 },
   sentenceJp: { fontSize: 16, lineHeight: 24 },
   showMore: { paddingTop: 10 },
+  addToListBtn: {
+    alignSelf: 'stretch',
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  addToListLabel: { fontSize: 15, fontWeight: '600' },
 });

@@ -135,7 +135,7 @@ export default function KanjiDetail() {
 
       <AddToListModal
         visible={listModalOpen}
-        character={character}
+        target={{ kind: 'kanji', character }}
         lists={lists}
         memberOf={memberOf}
         onChange={(nextMembers, nextLists) => {

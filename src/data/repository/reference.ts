@@ -80,6 +80,22 @@ export async function getWordById(id: number): Promise<Word | null> {
   return row ? mapWord(row) : null;
 }
 
+export async function getWordsByIds(ids: number[]): Promise<Word[]> {
+  if (ids.length === 0) return [];
+  const db = await getReferenceDb();
+  const out: Word[] = [];
+  const CHUNK = 800; // one placeholder per id; well under SQLite's 999 bound-variable limit
+  for (let i = 0; i < ids.length; i += CHUNK) {
+    const chunk = ids.slice(i, i + CHUNK);
+    const rows = await db.getAllAsync<any>(
+      `SELECT * FROM word WHERE id IN (${placeholders(chunk.length)})`,
+      chunk,
+    );
+    for (const row of rows) out.push(mapWord(row));
+  }
+  return out;
+}
+
 export async function getSentenceById(id: number): Promise<ExampleSentence | null> {
   const db = await getReferenceDb();
   const row = await db.getFirstAsync<any>('SELECT * FROM example_sentence WHERE id = ?', [id]);

@@ -1,4 +1,4 @@
-// Popup for assigning a kanji to existing lists or creating a new list.
+// Popup for assigning a kanji OR a word to existing lists, or creating a new list.
 import { useState } from 'react';
 import {
   Alert,
@@ -13,24 +13,31 @@ import {
 
 import {
   addKanjiToList,
+  addWordToList,
   createList,
   deleteList,
   KanjiListSummary,
   removeKanjiFromList,
+  removeWordFromList,
   renameList,
 } from '@/data/repository/lists';
 import { usePalette } from '@/ui/theme';
 
+/** What the modal is adding to lists: a single kanji character or a word (by id). */
+export type ListTarget =
+  | { kind: 'kanji'; character: string }
+  | { kind: 'word'; id: number; label: string };
+
 export function AddToListModal({
   visible,
-  character,
+  target,
   lists,
   memberOf,
   onChange,
   onClose,
 }: {
   visible: boolean;
-  character: string;
+  target: ListTarget;
   lists: KanjiListSummary[];
   memberOf: Set<number>;
   onChange: (memberOf: Set<number>, lists: KanjiListSummary[]) => void;
@@ -41,14 +48,24 @@ export function AddToListModal({
   const [renamingId, setRenamingId] = useState<number | null>(null);
   const [renameDraft, setRenameDraft] = useState('');
 
+  const addToList = (listId: number) =>
+    target.kind === 'kanji'
+      ? addKanjiToList(listId, target.character)
+      : addWordToList(listId, target.id);
+  const removeFromList = (listId: number) =>
+    target.kind === 'kanji'
+      ? removeKanjiFromList(listId, target.character)
+      : removeWordFromList(listId, target.id);
+  const targetLabel = target.kind === 'kanji' ? target.character : target.label;
+
   const toggle = async (listId: number) => {
     const next = new Set(memberOf);
     if (next.has(listId)) {
       next.delete(listId);
-      await removeKanjiFromList(listId, character);
+      await removeFromList(listId);
     } else {
       next.add(listId);
-      await addKanjiToList(listId, character);
+      await addToList(listId);
     }
     onChange(next, lists);
   };
@@ -101,7 +118,7 @@ export function AddToListModal({
     const trimmed = newName.trim();
     if (!trimmed) return;
     const id = await createList(trimmed);
-    await addKanjiToList(id, character);
+    await addToList(id);
     const nextLists: KanjiListSummary[] = [
       { id, name: trimmed, createdAt: Date.now(), memberCount: 1 },
       ...lists,
@@ -116,7 +133,7 @@ export function AddToListModal({
     <Modal transparent animationType="fade" visible={visible} onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable style={[styles.card, { backgroundColor: p.background }]} onPress={() => {}}>
-          <Text style={[styles.title, { color: p.text }]}>{`Add ${character} to list`}</Text>
+          <Text style={[styles.title, { color: p.text }]}>{`Add ${targetLabel} to list`}</Text>
 
           {lists.length === 0 ? (
             <Text style={[styles.empty, { color: p.textSecondary }]}>

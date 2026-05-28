@@ -8,14 +8,15 @@ import {
   getCharactersByLevelWithSrs,
   getDueCardsWithSrs,
   getKanjiByCharacters,
+  getKanjiWithSrs,
   getNewCardsWithSrs,
   getStudiedCharacters,
   type LevelField,
 } from '@/data/repository/kanji';
-import { getListMembers } from '@/data/repository/lists';
+import { getListMembers, getListWords } from '@/data/repository/lists';
 import { getSentenceContaining, getWordsForKanji } from '@/data/repository/reference';
 import { countNewCardsStudiedToday } from '@/data/repository/reviews';
-import { frequencyRank, Kanji, KanjiWithSrs } from '@/data/types';
+import { frequencyRank, Kanji, KanjiWithSrs, Word } from '@/data/types';
 import { getDailyResetMs } from '@/settings/preferences';
 import * as settings from '@/settings/settingsProvider';
 import { CardWithContext, WordWithSentence } from './models';
@@ -62,9 +63,17 @@ export async function loadExtra(n: number): Promise<CardWithContext[]> {
 }
 
 export async function loadList(listId: number): Promise<CardWithContext[]> {
-  const members = await getListMembers(listId);
+  const [members, words] = await Promise.all([getListMembers(listId), getListWords(listId)]);
   members.sort((a, b) => frequencyRank(a.kanji) - frequencyRank(b.kanji));
-  return hydrateAll(members);
+  const studiedChars = await getStudiedCharacters();
+  const kanjiCache = new Map<string, Kanji>();
+  const cards: CardWithContext[] = [];
+  for (const m of members) cards.push(await hydrate(m, studiedChars, kanjiCache));
+  for (const w of words) {
+    const card = await hydrateWord(w, studiedChars, kanjiCache);
+    if (card) cards.push(card);
+  }
+  return cards;
 }
 
 async function loadCustomSorted(filter: CustomFilter): Promise<KanjiWithSrs[]> {
@@ -106,7 +115,49 @@ async function hydrate(
   allowedKanji.add(card.kanji.character);
   const words = shuffle(await getWordsForKanji(card.kanji.character, 10));
   const examples = await buildExamples(words, allowedKanji, kanjiCache);
-  return { card, examples };
+  return { card, examples, cardId: card.kanji.character };
+}
+
+// Builds a CardWithContext for a word-list entry. The anchor kanji is the word's first kanji
+// (needed by the existing flow components for stroke order / reveal), and the example list is
+// locked to the word itself so studying it surfaces this specific word instead of an auto-pick.
+// Words whose form contains no kanji are skipped — there's nothing to anchor a card on.
+async function hydrateWord(
+  word: Word,
+  studiedChars: Set<string>,
+  kanjiCache: Map<string, Kanji>,
+): Promise<CardWithContext | null> {
+  const anchorChar = [...word.kanjiForm].find((c) => isKanji(c));
+  if (!anchorChar) return null;
+
+  const anchorCard = await getKanjiWithSrs(anchorChar);
+  if (!anchorCard) return null;
+
+  const neededChars = new Set([...word.kanjiForm].filter((c) => isKanji(c)) as string[]);
+  const allowedKanji = new Set(studiedChars);
+  for (const c of neededChars) allowedKanji.add(c);
+
+  const missing = [...neededChars].filter((c) => !kanjiCache.has(c));
+  if (missing.length > 0) {
+    const fetched = await getKanjiByCharacters(missing);
+    for (const k of fetched) kanjiCache.set(k.character, k);
+  }
+  const info = new Map<string, Kanji>();
+  for (const ch of neededChars) {
+    const k = kanjiCache.get(ch);
+    if (k) info.set(ch, k);
+  }
+
+  const sentence = await getSentenceContaining(word.kanjiForm, allowedKanji);
+  if (!sentence) return null;
+
+  const formattedReading = formatWordReading(word.kanjiForm, word.kana, info);
+  return {
+    card: anchorCard,
+    examples: [{ word, sentence, formattedReading }],
+    cardId: `w${word.id}`,
+    forceReview: true,
+  };
 }
 
 async function buildExamples(

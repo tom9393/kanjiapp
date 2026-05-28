@@ -7,13 +7,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePalette } from '@/ui/theme';
 
 const ITEMS: { label: string; path: Href }[] = [
-  { label: 'Custom Study', path: '/custom' },
-  { label: 'My Lists', path: '/lists' },
   { label: 'Browse Kanji', path: '/kanji' },
   { label: 'Browse Radicals', path: '/radicals' },
   { label: 'Favorites', path: '/favorites' },
   { label: 'Search Kanji', path: '/search/kanji' },
   { label: 'Search Words', path: '/search/words' },
+  { label: 'Custom Study', path: '/custom' },
+  { label: 'My Lists', path: '/lists' },
   { label: 'Stats', path: '/stats' },
   { label: 'Settings', path: '/settings' },
 ];

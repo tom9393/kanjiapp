@@ -14,14 +14,15 @@ import { ReviewReading } from '@/study/flows/ReviewReading';
 import { ReviewWriting } from '@/study/flows/ReviewWriting';
 
 export function StudyContent() {
-  const character = useStudyStore((s) => s.currentCard()).card.kanji.character;
+  const cardId = useStudyStore((s) => s.currentCard()).cardId;
   // Remount per card so review mode and the learning phase reset when the card advances.
-  return <CardFlow key={character} />;
+  return <CardFlow key={cardId} />;
 }
 
 function CardFlow() {
   const card = useStudyStore((s) => s.currentCard());
-  return srsOf(card.card).type === CardState.REVIEW ? <Review /> : <Learning />;
+  const isReview = card.forceReview || srsOf(card.card).type === CardState.REVIEW;
+  return isReview ? <Review /> : <Learning />;
 }
 
 function Review() {

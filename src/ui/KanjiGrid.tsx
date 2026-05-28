@@ -21,6 +21,7 @@ export function KanjiGrid({
   onPress,
   onLongPress,
   suspended,
+  footer,
 }: {
   kanji: KanjiWithSrs[];
   loading: boolean;
@@ -28,6 +29,8 @@ export function KanjiGrid({
   onLongPress?: (character: string) => void;
   /** Characters to dim as suspended (excluded from study). */
   suspended?: Set<string>;
+  /** Optional content rendered below the grid (still inside the scroll surface). */
+  footer?: React.ReactNode;
 }) {
   const { width } = useWindowDimensions();
   const available = width - GAP * 2; // content padding sits on both edges
@@ -51,6 +54,7 @@ export function KanjiGrid({
       contentContainerStyle={{ padding: GAP }}
       columnWrapperStyle={numColumns > 1 ? { gap: GAP } : undefined}
       ItemSeparatorComponent={() => <View style={{ height: GAP }} />}
+      ListFooterComponent={footer ? <>{footer}</> : null}
       renderItem={({ item }) => (
         <KanjiChip
           card={item}
