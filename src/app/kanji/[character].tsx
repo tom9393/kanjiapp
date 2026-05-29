@@ -4,13 +4,18 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { getKanjiWithSrs } from '@/data/repository/kanji';
+import { getKanjiByCharacters, getKanjiWithSrs } from '@/data/repository/kanji';
 import { getFlags, setFavorite, setSuspended, KanjiFlags } from '@/data/repository/flags';
 import { getLists, getListIdsContaining, KanjiListSummary } from '@/data/repository/lists';
 import { getReviewHistory } from '@/data/repository/reviews';
 import { getSentencesForKanji, getWordsForKanji } from '@/data/repository/reference';
 import { srsOf } from '@/data/types';
 import { CardState } from '@/domain/cardState';
+import {
+  groupWordsByReading,
+  kanjiInWordForms,
+  ReadingGroup,
+} from '@/domain/wordReadingGroups';
 import { MetaChips } from '@/study/components/MetaChips';
 import { Readings } from '@/study/components/Readings';
 import { AddToListButton } from '@/ui/AddToListButton';
@@ -44,14 +49,22 @@ export default function KanjiDetail() {
       getWordsForKanji(character),
       getSentencesForKanji(character),
     ]);
-    return { card, history, words, sentences };
+    const chars = kanjiInWordForms(words);
+    chars.add(character);
+    const kanjiInfo = new Map((await getKanjiByCharacters([...chars])).map((k) => [k.character, k]));
+    const wordGroups = groupWordsByReading(character, words, kanjiInfo);
+    return { card, history, wordGroups, sentences };
   }, [character]);
 
   // Mutable per-kanji state (flags + list membership), loaded into local state independently.
   const [flags, setFlags] = useState<KanjiFlags>({ favorite: false, suspended: false });
   const [lists, setLists] = useState<KanjiListSummary[]>([]);
   const [memberOf, setMemberOf] = useState<Set<number>>(new Set());
-  const [wordsExpanded, setWordsExpanded] = useState(false);
+  const [expandedReadings, setExpandedReadings] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    setExpandedReadings(new Set());
+  }, [character]);
 
   useEffect(() => {
     let active = true;
@@ -70,12 +83,19 @@ export default function KanjiDetail() {
 
   if (res.status === 'loading') return <Loading />;
   if (res.status === 'missing') return <NotFound label="Kanji not found." />;
-  const { card, history, words, sentences } = res.data;
+  const { card, history, wordGroups, sentences } = res.data;
 
   const srs = srsOf(card);
   const studied = card.rawSrs != null;
   const openWord = (id: number) => router.push({ pathname: '/word/[id]', params: { id } });
   const openSentence = (id: number) => router.push({ pathname: '/sentence/[id]', params: { id } });
+  const toggleReading = (key: string) =>
+    setExpandedReadings((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
 
   const toggleFavorite = () => {
     const next = !flags.favorite;
@@ -130,34 +150,68 @@ export default function KanjiDetail() {
 
       <RadicalTree character={card.kanji.character} />
 
-      {words.length > 0 && (
-        <View style={[styles.statusCard, styles.section, { backgroundColor: p.surfaceVariant }]}>
-          <Text style={[styles.sectionTitle, { color: p.text }]}>Words</Text>
-          {(wordsExpanded ? words : words.slice(0, COLLAPSE_LIMIT)).map((w) => (
-            <Pressable
-              key={w.id}
-              onPress={() => openWord(w.id)}
-              style={({ pressed }) => [styles.wordRow, pressed && { opacity: 0.6 }]}
-            >
-              <View style={styles.wordText}>
-                <Furigana form={w.kanjiForm} reading={w.kana} />
-                <Text style={{ color: p.textSecondary }}>{w.meaning}</Text>
-              </View>
-              <Text style={[styles.chevron, { color: p.textSecondary }]}>›</Text>
-            </Pressable>
-          ))}
-          {words.length > COLLAPSE_LIMIT && (
-            <ShowMore
-              expanded={wordsExpanded}
-              hiddenCount={words.length - COLLAPSE_LIMIT}
-              onToggle={() => setWordsExpanded((v) => !v)}
-            />
-          )}
-        </View>
-      )}
+      {wordGroups.map((group) => {
+        const key = group.reading ?? '__other__';
+        return (
+          <WordReadingCard
+            key={key}
+            group={group}
+            soleGroup={wordGroups.length === 1}
+            expanded={expandedReadings.has(key)}
+            onToggle={() => toggleReading(key)}
+            onOpenWord={openWord}
+          />
+        );
+      })}
 
       <SentenceList sentences={sentences} onOpen={openSentence} style={styles.section} />
     </ScrollView>
+  );
+}
+
+// One reading's card: the reading as its title (the lone unresolved group reads as "Words"), up to
+// COLLAPSE_LIMIT words, then a "Show all N words" toggle for the rest.
+function WordReadingCard({
+  group,
+  soleGroup,
+  expanded,
+  onToggle,
+  onOpenWord,
+}: {
+  group: ReadingGroup;
+  soleGroup: boolean;
+  expanded: boolean;
+  onToggle: () => void;
+  onOpenWord: (id: number) => void;
+}) {
+  const p = usePalette();
+  const title = group.reading ?? (soleGroup ? 'Words' : 'Other');
+  const shown = expanded ? group.words : group.words.slice(0, COLLAPSE_LIMIT);
+  return (
+    <View style={[styles.statusCard, styles.section, { backgroundColor: p.surfaceVariant }]}>
+      <Text style={[styles.sectionTitle, { color: p.text }]}>{title}</Text>
+      {shown.map((w) => (
+        <Pressable
+          key={w.id}
+          onPress={() => onOpenWord(w.id)}
+          style={({ pressed }) => [styles.wordRow, pressed && { opacity: 0.6 }]}
+        >
+          <View style={styles.wordText}>
+            <Furigana form={w.kanjiForm} reading={w.kana} />
+            <Text style={{ color: p.textSecondary }}>{w.meaning}</Text>
+          </View>
+          <Text style={[styles.chevron, { color: p.textSecondary }]}>›</Text>
+        </Pressable>
+      ))}
+      {group.words.length > COLLAPSE_LIMIT && (
+        <ShowMore
+          expanded={expanded}
+          hiddenCount={group.words.length - COLLAPSE_LIMIT}
+          onToggle={onToggle}
+          expandLabel={`Show all ${group.words.length} words`}
+        />
+      )}
+    </View>
   );
 }
 

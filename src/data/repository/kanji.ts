@@ -74,11 +74,17 @@ export async function getAllKanjiWithSrs(): Promise<KanjiWithSrs[]> {
 export async function getKanjiByCharacters(characters: string[]): Promise<Kanji[]> {
   if (characters.length === 0) return [];
   const db = await getDb();
-  const rows = await db.getAllAsync<any>(
-    `SELECT * FROM Kanji WHERE character IN (${placeholders(characters.length)})`,
-    characters,
-  );
-  return rows.map(mapKanji);
+  const out: Kanji[] = [];
+  const CHUNK = 800; // one placeholder per character; well under SQLite's 999 bound-variable limit
+  for (let i = 0; i < characters.length; i += CHUNK) {
+    const chunk = characters.slice(i, i + CHUNK);
+    const rows = await db.getAllAsync<any>(
+      `SELECT * FROM Kanji WHERE character IN (${placeholders(chunk.length)})`,
+      chunk,
+    );
+    for (const row of rows) out.push(mapKanji(row));
+  }
+  return out;
 }
 
 export async function getKanjiCount(): Promise<number> {
