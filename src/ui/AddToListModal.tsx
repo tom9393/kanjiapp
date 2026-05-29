@@ -1,15 +1,6 @@
 // Popup for assigning a kanji OR a word to existing lists, or creating a new list.
 import { useState } from 'react';
-import {
-  Alert,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
 
 import {
   addKanjiToList,
@@ -22,6 +13,7 @@ import {
   renameList,
 } from '@/data/repository/lists';
 import { confirmDestructive } from '@/ui/confirm';
+import { NewListRow } from '@/ui/NewListRow';
 import { usePalette } from '@/ui/theme';
 
 /** What the modal is adding to lists: a single kanji character or a word (by id). */
@@ -45,7 +37,6 @@ export function AddToListModal({
   onClose: () => void;
 }) {
   const p = usePalette();
-  const [newName, setNewName] = useState('');
   const [renamingId, setRenamingId] = useState<number | null>(null);
   const [renameDraft, setRenameDraft] = useState('');
 
@@ -112,18 +103,15 @@ export function AddToListModal({
     onChange(memberOf, nextLists);
   };
 
-  const submitNew = async () => {
-    const trimmed = newName.trim();
-    if (!trimmed) return;
-    const id = await createList(trimmed);
+  const submitNew = async (name: string) => {
+    const id = await createList(name);
     await addToList(id);
     const nextLists: KanjiListSummary[] = [
-      { id, name: trimmed, createdAt: Date.now(), memberCount: 1 },
+      { id, name, createdAt: Date.now(), memberCount: 1 },
       ...lists,
     ];
     const nextMembers = new Set(memberOf);
     nextMembers.add(id);
-    setNewName('');
     onChange(nextMembers, nextLists);
   };
 
@@ -181,31 +169,7 @@ export function AddToListModal({
             </ScrollView>
           )}
 
-          <View style={[styles.createRow, { backgroundColor: p.surfaceVariant }]}>
-            <TextInput
-              value={newName}
-              onChangeText={setNewName}
-              placeholder="New list name"
-              placeholderTextColor={p.textSecondary}
-              onSubmitEditing={submitNew}
-              returnKeyType="done"
-              style={[
-                styles.input,
-                { color: p.text, borderColor: p.border, backgroundColor: p.background },
-              ]}
-            />
-            <Pressable
-              onPress={submitNew}
-              disabled={!newName.trim()}
-              style={({ pressed }) => [
-                styles.createBtn,
-                { backgroundColor: newName.trim() ? p.primary : p.border },
-                pressed && { opacity: 0.7 },
-              ]}
-            >
-              <Text style={[styles.createLabel, { color: p.onPrimary }]}>Create</Text>
-            </Pressable>
-          </View>
+          <NewListRow onCreate={submitNew} style={styles.createRow} />
 
           <Pressable onPress={onClose} style={styles.doneBtn} hitSlop={8}>
             <Text style={[styles.doneLabel, { color: p.primary }]}>Done</Text>
@@ -231,17 +195,7 @@ const styles = StyleSheet.create({
   chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1 },
   chipLabel: { fontSize: 13, fontWeight: '600' },
   renameInput: { fontSize: 13, fontWeight: '600', minWidth: 100, paddingVertical: 4 },
-  createRow: { flexDirection: 'row', gap: 8, borderRadius: 12, padding: 10, marginTop: 12 },
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 15,
-  },
-  createBtn: { paddingHorizontal: 16, justifyContent: 'center', borderRadius: 10 },
-  createLabel: { fontSize: 14, fontWeight: '600' },
+  createRow: { marginTop: 12 },
   doneBtn: { alignSelf: 'flex-end', paddingTop: 12, paddingHorizontal: 4 },
   doneLabel: { fontSize: 15, fontWeight: '600' },
 });

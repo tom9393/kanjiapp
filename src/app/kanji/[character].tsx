@@ -1,12 +1,11 @@
 // Kanji detail: readings + SRS status + review count, plus example words/sentences
 // (served from the prebuilt reference.db).
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { getKanjiByCharacters, getKanjiWithSrs } from '@/data/repository/kanji';
 import { getFlags, setFavorite, setSuspended, KanjiFlags } from '@/data/repository/flags';
-import { getLists, getListIdsContaining, KanjiListSummary } from '@/data/repository/lists';
 import { getReviewHistory } from '@/data/repository/reviews';
 import { getSentencesForKanji, getWordsForKanji } from '@/data/repository/reference';
 import { srsOf } from '@/data/types';
@@ -25,6 +24,7 @@ import { Loading, LoadError, NotFound } from '@/ui/screenStates';
 import { SentenceList } from '@/ui/SentenceList';
 import { ShowMore } from '@/ui/ShowMore';
 import { useAsyncResource } from '@/ui/useAsyncResource';
+import { useNav } from '@/ui/nav';
 import { cardStateColors, usePalette } from '@/ui/theme';
 
 const STATE_LABEL: Record<CardState, string> = {
@@ -38,8 +38,8 @@ const COLLAPSE_LIMIT = 5;
 
 export default function KanjiDetail() {
   const { character } = useLocalSearchParams<{ character: string }>();
-  const router = useRouter();
   const p = usePalette();
+  const { word: openWord, sentence: openSentence } = useNav();
 
   const res = useAsyncResource(async () => {
     const card = await getKanjiWithSrs(character);
@@ -58,8 +58,6 @@ export default function KanjiDetail() {
 
   // Mutable per-kanji state (flags + list membership), loaded into local state independently.
   const [flags, setFlags] = useState<KanjiFlags>({ favorite: false, suspended: false });
-  const [lists, setLists] = useState<KanjiListSummary[]>([]);
-  const [memberOf, setMemberOf] = useState<Set<number>>(new Set());
   const [expandedReadings, setExpandedReadings] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -68,14 +66,9 @@ export default function KanjiDetail() {
 
   useEffect(() => {
     let active = true;
-    Promise.all([getFlags(character), getLists(), getListIdsContaining(character)]).then(
-      ([f, l, m]) => {
-        if (!active) return;
-        setFlags(f);
-        setLists(l);
-        setMemberOf(m);
-      },
-    );
+    getFlags(character).then((f) => {
+      if (active) setFlags(f);
+    });
     return () => {
       active = false;
     };
@@ -88,8 +81,6 @@ export default function KanjiDetail() {
 
   const srs = srsOf(card);
   const studied = card.rawSrs != null;
-  const openWord = (id: number) => router.push({ pathname: '/word/[id]', params: { id } });
-  const openSentence = (id: number) => router.push({ pathname: '/sentence/[id]', params: { id } });
   const toggleReading = (key: string) =>
     setExpandedReadings((prev) => {
       const next = new Set(prev);
@@ -146,16 +137,7 @@ export default function KanjiDetail() {
         <StatusRow label="Reviews" value={`${history.length}`} />
       </View>
 
-      <AddToListButton
-        target={{ kind: 'kanji', character }}
-        lists={lists}
-        memberOf={memberOf}
-        onChange={(nextMembers, nextLists) => {
-          setMemberOf(nextMembers);
-          setLists(nextLists);
-        }}
-        style={styles.section}
-      />
+      <AddToListButton target={{ kind: 'kanji', character }} style={styles.section} />
 
       <RadicalTree character={card.kanji.character} />
 

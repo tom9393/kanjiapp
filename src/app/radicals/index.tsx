@@ -1,12 +1,12 @@
 // Radical picker: select multiple radicals to find kanji containing all of them.
 // Ported from kanji/view/KanjiScreen.kt's radical grid, extended with multi-select search.
-import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { RadicalEntry, radicals } from '@/data/radicals';
 import { getKanjiWithSrsByCharacters } from '@/data/repository/kanji';
-import { frequencyRank, KanjiWithSrs, srsOf } from '@/data/types';
+import { byFrequency, KanjiWithSrs, srsOf } from '@/data/types';
+import { useNav } from '@/ui/nav';
 import { cardStateColors, usePalette } from '@/ui/theme';
 
 const TOP_N = 12; // results shown before the user expands the box
@@ -15,8 +15,8 @@ const CHIP_GAP = 6; // matches styles.resultsWrap gap
 const RESULTS_CHROME = 110; // header + toggle + show-all + box padding around the chip grid
 
 export default function RadicalBrowse() {
-  const router = useRouter();
   const p = usePalette();
+  const { kanji: openKanji } = useNav();
 
   const [selected, setSelected] = useState<string[]>([]);
   const [results, setResults] = useState<KanjiWithSrs[]>([]);
@@ -47,7 +47,7 @@ export default function RadicalBrowse() {
     let active = true;
     (async () => {
       const kanji = await getKanjiWithSrsByCharacters(matchChars);
-      kanji.sort((a, b) => frequencyRank(a.kanji) - frequencyRank(b.kanji)); // most common first
+      kanji.sort(byFrequency); // most common first
       if (active) {
         setResults(kanji);
         setExpanded(false);
@@ -71,9 +71,6 @@ export default function RadicalBrowse() {
 
   const toggle = (r: string) =>
     setSelected((prev) => (prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]));
-  const openKanji = (character: string) =>
-    router.push({ pathname: '/kanji/[character]', params: { character } });
-
   const shown = expanded ? results : results.slice(0, TOP_N);
 
   // Reserve the tallest the box gets while collapsed so selecting radicals fills this

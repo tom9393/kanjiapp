@@ -1,18 +1,19 @@
 // Favorites: the kanji the user has starred (from the kanji detail screen), shown as a grid.
 // Reloads on focus so a star toggled elsewhere is reflected when returning here.
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { getFavoriteKanji } from '@/data/repository/flags';
-import { frequencyRank, KanjiWithSrs } from '@/data/types';
+import { byFrequency, KanjiWithSrs } from '@/data/types';
 import { KanjiGrid } from '@/ui/KanjiGrid';
+import { useNav } from '@/ui/nav';
 import { usePalette } from '@/ui/theme';
 
 export default function Favorites() {
-  const router = useRouter();
   const p = usePalette();
+  const { kanji: openKanji } = useNav();
   const [kanji, setKanji] = useState<KanjiWithSrs[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -21,7 +22,7 @@ export default function Favorites() {
       let active = true;
       getFavoriteKanji().then((k) => {
         if (!active) return;
-        k.sort((a, b) => frequencyRank(a.kanji) - frequencyRank(b.kanji)); // most common first
+        k.sort(byFrequency); // most common first
         setKanji(k);
         setLoading(false);
       });
@@ -30,8 +31,6 @@ export default function Favorites() {
       };
     }, []),
   );
-
-  const openKanji = (character: string) => router.push({ pathname: '/kanji/[character]', params: { character } });
 
   if (!loading && kanji.length === 0) {
     return (

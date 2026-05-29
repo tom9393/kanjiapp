@@ -87,6 +87,11 @@ export function frequencyRank(k: Kanji): number {
   return k.frequency || Infinity;
 }
 
+/** Array.sort comparator ordering cards most common first (see frequencyRank). */
+export function byFrequency(a: KanjiWithSrs, b: KanjiWithSrs): number {
+  return frequencyRank(a.kanji) - frequencyRank(b.kanji);
+}
+
 /** Decodes a ×10-encoded Kanji Kentei level into its display label, or null when there is none. */
 export function kankenLabel(kanken: number): string | null {
   if (!kanken) return null;

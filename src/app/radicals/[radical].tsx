@@ -1,5 +1,5 @@
 // Kanji that contain a given radical, served from SRS-joined data. Mirrors the grade browse grid.
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -7,12 +7,13 @@ import { radicals } from '@/data/radicals';
 import { getKanjiWithSrsByCharacters } from '@/data/repository/kanji';
 import { KanjiWithSrs } from '@/data/types';
 import { KanjiGrid } from '@/ui/KanjiGrid';
+import { useNav } from '@/ui/nav';
 import { usePalette } from '@/ui/theme';
 
 export default function RadicalKanji() {
   const { radical } = useLocalSearchParams<{ radical: string }>();
-  const router = useRouter();
   const p = usePalette();
+  const { kanji: openKanji } = useNav();
   const [kanji, setKanji] = useState<KanjiWithSrs[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -24,8 +25,6 @@ export default function RadicalKanji() {
       setLoading(false);
     })();
   }, [radical]);
-
-  const openKanji = (character: string) => router.push({ pathname: '/kanji/[character]', params: { character } });
 
   return (
     <View style={[styles.fill, { backgroundColor: p.background }]}>

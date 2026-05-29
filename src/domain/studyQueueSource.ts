@@ -18,7 +18,7 @@ import { getListMembers, getListWords } from '@/data/repository/lists';
 import { getSentenceContaining, getWordsForKanji } from '@/data/repository/reference';
 import { countNewCardsStudiedToday } from '@/data/repository/reviews';
 import { getWordStatsByIds } from '@/data/repository/wordStats';
-import { frequencyRank, Kanji, KanjiWithSrs, srsOf, Word, WordStat } from '@/data/types';
+import { byFrequency, Kanji, KanjiWithSrs, srsOf, Word, WordStat } from '@/data/types';
 import { CardState } from '@/domain/cardState';
 import { getDailyResetMs, ReviewWordSelection } from '@/settings/preferences';
 import * as settings from '@/settings/settingsProvider';
@@ -68,7 +68,7 @@ export async function loadExtra(n: number): Promise<CardWithContext[]> {
 
 export async function loadList(listId: number): Promise<CardWithContext[]> {
   const [members, words] = await Promise.all([getListMembers(listId), getListWords(listId)]);
-  members.sort((a, b) => frequencyRank(a.kanji) - frequencyRank(b.kanji));
+  members.sort(byFrequency);
   const studiedChars = await getStudiedCharacters();
   const kanjiCache = new Map<string, Kanji>();
   const cards: CardWithContext[] = [];
@@ -82,7 +82,7 @@ export async function loadList(listId: number): Promise<CardWithContext[]> {
 
 async function loadCustomSorted(filter: CustomFilter): Promise<KanjiWithSrs[]> {
   const all = await getCharactersByLevelWithSrs(filter.category, filter.level);
-  return all.sort((a, b) => frequencyRank(a.kanji) - frequencyRank(b.kanji));
+  return all.sort(byFrequency);
 }
 
 export async function listCustomChunks(filter: CustomFilter): Promise<{ start: number; characters: string[] }[]> {

@@ -2,18 +2,18 @@
 // surfaces 進化, 神経, …; Japanese input matches kana/kanji-form directly. Queries hit the
 // reference DB (172k words) so they are debounced; tapping a result opens the word detail.
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { searchWords } from '@/data/repository/reference';
 import { Word } from '@/data/types';
 import { Furigana } from '@/ui/Furigana';
+import { useNav } from '@/ui/nav';
 import { usePalette } from '@/ui/theme';
 
 export default function WordSearch() {
-  const router = useRouter();
   const p = usePalette();
+  const { word: openWord } = useNav();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Word[]>([]);
   const [loading, setLoading] = useState(false);
@@ -38,8 +38,6 @@ export default function WordSearch() {
       clearTimeout(handle);
     };
   }, [query]);
-
-  const openWord = (id: number) => router.push({ pathname: '/word/[id]', params: { id: String(id) } });
 
   return (
     <View style={[styles.fill, { backgroundColor: p.background }]}>

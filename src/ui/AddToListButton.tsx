@@ -1,27 +1,47 @@
 // The "Add to list / In N lists — edit" button + its modal, shared by the kanji and word detail
-// screens. Owns the modal's open state; the parent keeps the membership it renders and updates it
-// through onChange.
-import { useState } from 'react';
+// screens. Loads all lists and which of them already contain the target on mount, and owns both
+// the modal's open state and that membership — the modal mutates it in place via onChange.
+import { useEffect, useState } from 'react';
 import { Pressable, StyleProp, StyleSheet, Text, ViewStyle } from 'react-native';
-import { KanjiListSummary } from '@/data/repository/lists';
+import {
+  getLists,
+  getListIdsContaining,
+  getListIdsContainingWord,
+  KanjiListSummary,
+} from '@/data/repository/lists';
 import { AddToListModal, ListTarget } from '@/ui/AddToListModal';
 import { usePalette } from '@/ui/theme';
 
 export function AddToListButton({
   target,
-  lists,
-  memberOf,
-  onChange,
   style,
 }: {
   target: ListTarget;
-  lists: KanjiListSummary[];
-  memberOf: Set<number>;
-  onChange: (memberOf: Set<number>, lists: KanjiListSummary[]) => void;
   style?: StyleProp<ViewStyle>;
 }) {
   const p = usePalette();
   const [open, setOpen] = useState(false);
+  const [lists, setLists] = useState<KanjiListSummary[]>([]);
+  const [memberOf, setMemberOf] = useState<Set<number>>(new Set());
+
+  const targetKey = target.kind === 'kanji' ? target.character : target.id;
+  useEffect(() => {
+    let active = true;
+    const containing =
+      target.kind === 'kanji'
+        ? getListIdsContaining(target.character)
+        : getListIdsContainingWord(target.id);
+    Promise.all([getLists(), containing]).then(([allLists, inLists]) => {
+      if (!active) return;
+      setLists(allLists);
+      setMemberOf(inLists);
+    });
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target.kind, targetKey]);
+
   const count = memberOf.size;
   return (
     <>
@@ -43,7 +63,10 @@ export function AddToListButton({
         target={target}
         lists={lists}
         memberOf={memberOf}
-        onChange={onChange}
+        onChange={(nextMembers, nextLists) => {
+          setMemberOf(nextMembers);
+          setLists(nextLists);
+        }}
         onClose={() => setOpen(false)}
       />
     </>

@@ -1,11 +1,9 @@
 // Word detail: the word's form, reading, and meaning; the kanji it uses (each links to its
 // own kanji page); and example sentences containing the word. Mirrors the kanji detail screen.
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { getKanjiByCharacters } from '@/data/repository/kanji';
-import { getLists, getListIdsContainingWord, KanjiListSummary } from '@/data/repository/lists';
 import { getSentencesContainingWord, getWordById } from '@/data/repository/reference';
 import { Kanji } from '@/data/types';
 import { isKanji } from '@/domain/readingFormatter';
@@ -14,12 +12,13 @@ import { Furigana } from '@/ui/Furigana';
 import { Loading, LoadError, NotFound } from '@/ui/screenStates';
 import { SentenceList } from '@/ui/SentenceList';
 import { useAsyncResource } from '@/ui/useAsyncResource';
+import { useNav } from '@/ui/nav';
 import { usePalette } from '@/ui/theme';
 
 export default function WordDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
   const p = usePalette();
+  const { kanji: openKanji, sentence: openSentence } = useNav();
 
   const res = useAsyncResource(async () => {
     const word = await getWordById(Number(id));
@@ -33,28 +32,10 @@ export default function WordDetail() {
     return { word, kanji, sentences };
   }, [id]);
 
-  // List membership is mutable (via the modal), so it lives in local state, seeded independently.
-  const [lists, setLists] = useState<KanjiListSummary[]>([]);
-  const [memberOf, setMemberOf] = useState<Set<number>>(new Set());
-  useEffect(() => {
-    let active = true;
-    Promise.all([getLists(), getListIdsContainingWord(Number(id))]).then(([allLists, inLists]) => {
-      if (!active) return;
-      setLists(allLists);
-      setMemberOf(inLists);
-    });
-    return () => {
-      active = false;
-    };
-  }, [id]);
-
   if (res.status === 'loading') return <Loading />;
   if (res.status === 'error') return <LoadError />;
   if (res.status === 'missing') return <NotFound label="Word not found." />;
   const { word, kanji, sentences } = res.data;
-
-  const openKanji = (character: string) => router.push({ pathname: '/kanji/[character]', params: { character } });
-  const openSentence = (sid: number) => router.push({ pathname: '/sentence/[id]', params: { id: sid } });
 
   return (
     <ScrollView style={{ backgroundColor: p.background }} contentContainerStyle={styles.content}>
@@ -63,12 +44,6 @@ export default function WordDetail() {
 
       <AddToListButton
         target={{ kind: 'word', id: word.id, label: word.kanjiForm }}
-        lists={lists}
-        memberOf={memberOf}
-        onChange={(nextMembers, nextLists) => {
-          setMemberOf(nextMembers);
-          setLists(nextLists);
-        }}
         style={styles.section}
       />
 

@@ -15,18 +15,20 @@ import {
   removeWordFromList,
   renameList,
 } from '@/data/repository/lists';
-import { frequencyRank, KanjiWithSrs, Word } from '@/data/types';
+import { byFrequency, KanjiWithSrs, Word } from '@/data/types';
 import { LoadRequest } from '@/state/studyStore';
 import { Btn } from '@/study/components/Btn';
 import { confirmDestructive } from '@/ui/confirm';
 import { Furigana } from '@/ui/Furigana';
 import { KanjiGrid } from '@/ui/KanjiGrid';
+import { useNav } from '@/ui/nav';
 import { Loading, NotFound } from '@/ui/screenStates';
 import { usePalette } from '@/ui/theme';
 
 export default function ListDetail() {
   const router = useRouter();
   const p = usePalette();
+  const { kanji: openKanji, word: openWord } = useNav();
   const params = useLocalSearchParams<{ id: string }>();
   const listId = Number(params.id);
 
@@ -42,7 +44,7 @@ export default function ListDetail() {
     Promise.all([getList(listId), getListMembers(listId), getListWords(listId)]).then(
       ([l, m, w]) => {
         if (!active) return;
-        m.sort((a, b) => frequencyRank(a.kanji) - frequencyRank(b.kanji));
+        m.sort(byFrequency);
         setList(l);
         setMembers(m);
         setWords(w);
@@ -63,12 +65,6 @@ export default function ListDetail() {
     const req: LoadRequest = { kind: 'list', listId };
     router.push({ pathname: '/study', params: { req: JSON.stringify(req) } });
   };
-
-  const openKanji = (character: string) =>
-    router.push({ pathname: '/kanji/[character]', params: { character } });
-
-  const openWord = (id: number) =>
-    router.push({ pathname: '/word/[id]', params: { id: String(id) } });
 
   const confirmRemove = (character: string) =>
     confirmDestructive({

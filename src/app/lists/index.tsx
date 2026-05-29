@@ -3,17 +3,17 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { createList, getLists, KanjiListSummary } from '@/data/repository/lists';
 import { shared } from '@/stats/primitives';
+import { NewListRow } from '@/ui/NewListRow';
 import { usePalette } from '@/ui/theme';
 
 export default function ListsIndex() {
   const router = useRouter();
   const p = usePalette();
   const [lists, setLists] = useState<KanjiListSummary[]>([]);
-  const [newName, setNewName] = useState('');
 
   const refresh = useCallback(() => {
     getLists().then(setLists);
@@ -21,11 +21,8 @@ export default function ListsIndex() {
 
   useFocusEffect(refresh);
 
-  const submit = async () => {
-    const trimmed = newName.trim();
-    if (!trimmed) return;
-    await createList(trimmed);
-    setNewName('');
+  const handleCreate = async (name: string) => {
+    await createList(name);
     refresh();
   };
 
@@ -35,28 +32,7 @@ export default function ListsIndex() {
         Build your own kanji lists. Lists are practice-only — sessions don't affect daily reviews.
       </Text>
 
-      <View style={[styles.createRow, { backgroundColor: p.surfaceVariant }]}>
-        <TextInput
-          value={newName}
-          onChangeText={setNewName}
-          placeholder="New list name"
-          placeholderTextColor={p.textSecondary}
-          onSubmitEditing={submit}
-          returnKeyType="done"
-          style={[styles.input, { color: p.text, borderColor: p.border, backgroundColor: p.background }]}
-        />
-        <Pressable
-          onPress={submit}
-          disabled={!newName.trim()}
-          style={({ pressed }) => [
-            styles.createBtn,
-            { backgroundColor: newName.trim() ? p.primary : p.border },
-            pressed && { opacity: 0.7 },
-          ]}
-        >
-          <Text style={[styles.createLabel, { color: p.onPrimary }]}>Create</Text>
-        </Pressable>
-      </View>
+      <NewListRow onCreate={handleCreate} style={styles.createRow} />
 
       {lists.length === 0 ? (
         <View style={styles.emptyWrap}>
@@ -90,10 +66,7 @@ export default function ListsIndex() {
 const styles = StyleSheet.create({
   content: { paddingVertical: 10, paddingHorizontal: 16 },
   intro: { fontSize: 13, paddingTop: 4, paddingBottom: 10 },
-  createRow: { flexDirection: 'row', gap: 8, borderRadius: 12, padding: 10, marginBottom: 12 },
-  input: { flex: 1, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, fontSize: 15 },
-  createBtn: { paddingHorizontal: 16, justifyContent: 'center', borderRadius: 10 },
-  createLabel: { fontSize: 14, fontWeight: '600' },
+  createRow: { marginBottom: 12 },
   emptyWrap: { alignItems: 'center', paddingTop: 32 },
   emptyIcon: { marginBottom: 12, opacity: 0.6 },
   empty: { fontSize: 14, textAlign: 'center' },

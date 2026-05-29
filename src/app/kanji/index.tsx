@@ -1,5 +1,4 @@
 // Ported from kanji/view/KanjiScreen.kt — grade browse with SRS-colored chips.
-import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -8,11 +7,12 @@ import { GRADE_TABS, useBrowseStore } from '@/state/kanjiBrowseStore';
 import { KanjiGrid } from '@/ui/KanjiGrid';
 import { KanjiList } from '@/ui/KanjiList';
 import { useKanjiView, ViewModeToggle } from '@/ui/ViewModeToggle';
+import { useNav } from '@/ui/nav';
 import { usePalette } from '@/ui/theme';
 
 export default function KanjiBrowse() {
-  const router = useRouter();
   const p = usePalette();
+  const { kanji: openKanji } = useNav();
   const selectedGrade = useBrowseStore((s) => s.selectedGrade);
   const kanji = useBrowseStore((s) => s.kanji);
   const suspended = useBrowseStore((s) => s.suspended);
@@ -24,7 +24,6 @@ export default function KanjiBrowse() {
     useBrowseStore.getState().init();
   }, []);
 
-  const openKanji = (character: string) => router.push({ pathname: '/kanji/[character]', params: { character } });
   const Results = view === 'grid' ? KanjiGrid : KanjiList;
 
   return (

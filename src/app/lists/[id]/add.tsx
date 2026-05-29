@@ -12,7 +12,7 @@ import {
   KanjiList,
   removeKanjiFromList,
 } from '@/data/repository/lists';
-import { frequencyRank, KanjiWithSrs } from '@/data/types';
+import { byFrequency, KanjiWithSrs } from '@/data/types';
 import { matchesKanji, parseQuery } from '@/domain/search';
 import { usePalette } from '@/ui/theme';
 
@@ -31,7 +31,7 @@ export default function AddToList() {
     Promise.all([getAllKanjiWithSrs(), getListMemberCharacters(listId), getList(listId)]).then(
       ([k, m, l]) => {
         if (!active) return;
-        k.sort((a, b) => frequencyRank(a.kanji) - frequencyRank(b.kanji));
+        k.sort(byFrequency);
         setAll(k);
         setMembers(m);
         setList(l);

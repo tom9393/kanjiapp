@@ -1,21 +1,21 @@
 // Parsed-sentence view: the sentence + its translation, then the component words found by
 // dictionary longest-match (de-conjugated to their plain form, e.g. かかった → かかる). Each word
 // links to its word page; grammatical/kana-only words absent from the dictionary aren't listed.
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { getSentenceById, lookupWordsByForms } from '@/data/repository/reference';
-import { Word } from '@/data/types';
 import { candidateForms, segment } from '@/domain/sentenceParser';
 import { Furigana } from '@/ui/Furigana';
+import { useNav } from '@/ui/nav';
 import { Loading, LoadError, NotFound } from '@/ui/screenStates';
 import { useAsyncResource } from '@/ui/useAsyncResource';
 import { usePalette } from '@/ui/theme';
 
 export default function SentenceDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
   const p = usePalette();
+  const { word: openWord } = useNav();
 
   const res = useAsyncResource(async () => {
     const sentence = await getSentenceById(Number(id));
@@ -29,8 +29,6 @@ export default function SentenceDetail() {
   if (res.status === 'error') return <LoadError />;
   if (res.status === 'missing') return <NotFound label="Sentence not found." />;
   const { sentence, words } = res.data;
-
-  const openWord = (w: Word) => router.push({ pathname: '/word/[id]', params: { id: w.id } });
 
   return (
     <ScrollView style={{ backgroundColor: p.background }} contentContainerStyle={styles.content}>
@@ -47,7 +45,7 @@ export default function SentenceDetail() {
             return (
               <Pressable
                 key={i}
-                onPress={() => openWord(w)}
+                onPress={() => openWord(w.id)}
                 style={({ pressed }) => [styles.wordRow, pressed && { opacity: 0.6 }]}
               >
                 <View style={styles.wordText}>

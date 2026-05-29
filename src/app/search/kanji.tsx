@@ -2,23 +2,23 @@
 // Latin input is matched as a reading (mizu, sui) or meaning (water); Japanese input matches
 // readings/character directly. The full kanji set is loaded once and filtered in memory.
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { getAllKanjiWithSrs } from '@/data/repository/kanji';
 import { getSuspendedCharacters } from '@/data/repository/flags';
-import { frequencyRank, KanjiWithSrs } from '@/data/types';
+import { byFrequency, KanjiWithSrs } from '@/data/types';
 import { matchesKanji, parseQuery } from '@/domain/search';
 import { Prefs } from '@/settings/preferences';
 import { KanjiGrid } from '@/ui/KanjiGrid';
 import { KanjiList } from '@/ui/KanjiList';
 import { useKanjiView, ViewModeToggle } from '@/ui/ViewModeToggle';
+import { useNav } from '@/ui/nav';
 import { usePalette } from '@/ui/theme';
 
 export default function KanjiSearch() {
-  const router = useRouter();
   const p = usePalette();
+  const { kanji: openKanji } = useNav();
   const [query, setQuery] = useState('');
   const [all, setAll] = useState<KanjiWithSrs[]>([]);
   const [suspended, setSuspended] = useState<Set<string>>(new Set());
@@ -29,7 +29,7 @@ export default function KanjiSearch() {
     let active = true;
     Promise.all([getAllKanjiWithSrs(), getSuspendedCharacters()]).then(([k, s]) => {
       if (!active) return;
-      k.sort((a, b) => frequencyRank(a.kanji) - frequencyRank(b.kanji)); // most common first
+      k.sort(byFrequency); // most common first
       setAll(k);
       setSuspended(s);
       setLoading(false);
@@ -45,7 +45,6 @@ export default function KanjiSearch() {
     return all.filter((c) => matchesKanji(c.kanji, q));
   }, [query, all]);
 
-  const openKanji = (character: string) => router.push({ pathname: '/kanji/[character]', params: { character } });
   const Results = view === 'grid' ? KanjiGrid : KanjiList;
 
   return (
