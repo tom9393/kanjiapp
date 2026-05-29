@@ -97,32 +97,12 @@ export async function getStudyModes(): Promise<StudyModesSnapshot> {
   return { handwriting, reading };
 }
 
-export function getLearningRepetitions(): Promise<number> {
-  return getNumber(Prefs.learningRepetitions);
-}
-
 export function getNewCardsLimit(): Promise<number> {
   return getNumber(Prefs.newCardsPerDay);
 }
 
 export function getResetHour(): Promise<number> {
   return getNumber(Prefs.dailyResetHour);
-}
-
-export function getStrokeWidth(): Promise<number> {
-  return getNumber(Prefs.strokeWidth);
-}
-
-export function getAnimateStrokes(): Promise<boolean> {
-  return getBoolean(Prefs.animateStrokes);
-}
-
-export function getDecomposeToPrimitives(): Promise<boolean> {
-  return getBoolean(Prefs.decomposeToPrimitives);
-}
-
-export function getRateKanjiIndividually(): Promise<boolean> {
-  return getBoolean(Prefs.rateKanjiIndividually);
 }
 
 export function getReviewWordSelection(): Promise<ReviewWordSelection> {

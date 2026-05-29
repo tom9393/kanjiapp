@@ -54,6 +54,15 @@ function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
 }
 
+// REVIEW cards split into mature/young at the 21-day threshold; everything else (learning,
+// relearning) counts as 'learning'. The keys match FutureDueEntry's fields, so callers can do
+// entry[maturityOf(...)]++.
+type Maturity = 'young' | 'mature' | 'learning';
+function maturityOf(type: CardState, interval: number): Maturity {
+  if (type === CardState.REVIEW) return interval >= MATURE_SECS ? 'mature' : 'young';
+  return 'learning';
+}
+
 function buildMaturityTimeline(
   maturityByChar: Map<string, number>,
   zoneOffsetSecs: number,
@@ -225,21 +234,16 @@ export function computeStats(
   const matureCount = filteredSrs.filter((s) => s.type === CardState.REVIEW && s.interval >= MATURE_SECS).length;
   const relearningCount = filteredSrs.filter((s) => s.type === CardState.RELEARNING).length;
 
-  const futureMature = new Array(futureDayRange).fill(0);
-  const futureYoung = new Array(futureDayRange).fill(0);
-  const futureLearning = new Array(futureDayRange).fill(0);
+  const futureDue: FutureDueEntry[] = Array.from({ length: futureDayRange }, () => ({
+    young: 0,
+    mature: 0,
+    learning: 0,
+  }));
   for (const srs of filteredSrs) {
     if (srs.type === CardState.NEW) continue;
     const days = clamp(Math.trunc((srs.due - nowSecs) / 86400), 0, futureDayRange - 1);
-    if (srs.type === CardState.REVIEW && srs.interval >= MATURE_SECS) futureMature[days]++;
-    else if (srs.type === CardState.REVIEW) futureYoung[days]++;
-    else futureLearning[days]++;
+    futureDue[days][maturityOf(srs.type, srs.interval)]++;
   }
-  const futureDue: FutureDueEntry[] = Array.from({ length: futureDayRange }, (_, i) => ({
-    young: futureYoung[i],
-    mature: futureMature[i],
-    learning: futureLearning[i],
-  }));
 
   const intervalCounts = new Array(12).fill(0);
   for (const srs of filteredSrs) {
@@ -274,24 +278,19 @@ export function computeStats(
   }
   const reviewNumBars = Math.floor(reviewPeriodDays / reviewBarsPerDay) + 1;
   const reviewStartDay = todayEpochDay - reviewPeriodDays;
-  const reviewYoung = new Array(reviewNumBars).fill(0);
-  const reviewMature = new Array(reviewNumBars).fill(0);
-  const reviewLearning = new Array(reviewNumBars).fill(0);
+  const reviewEntries: FutureDueEntry[] = Array.from({ length: reviewNumBars }, () => ({
+    young: 0,
+    mature: 0,
+    learning: 0,
+  }));
   const reviewDaysWithStudy = new Set<number>();
   for (const r of filteredReviews) {
     const epochDay = Math.floor((Math.floor(r.id / 1000) + zoneOffsetSecs) / 86400);
     if (epochDay < reviewStartDay) continue;
     const barIdx = clamp(Math.floor((epochDay - reviewStartDay) / reviewBarsPerDay), 0, reviewNumBars - 1);
     reviewDaysWithStudy.add(epochDay);
-    if (r.type === CardState.REVIEW && r.interval >= MATURE_SECS) reviewMature[barIdx]++;
-    else if (r.type === CardState.REVIEW) reviewYoung[barIdx]++;
-    else reviewLearning[barIdx]++;
+    reviewEntries[barIdx][maturityOf(r.type, r.interval)]++;
   }
-  const reviewEntries: FutureDueEntry[] = Array.from({ length: reviewNumBars }, (_, i) => ({
-    young: reviewYoung[i],
-    mature: reviewMature[i],
-    learning: reviewLearning[i],
-  }));
   const labelStep = Math.max(1, Math.floor(reviewNumBars / 6));
   const reviewLabels = reviewEntries.map((_, i) => {
     const barsFromEnd = reviewNumBars - 1 - i;

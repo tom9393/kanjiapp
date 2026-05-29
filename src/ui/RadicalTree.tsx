@@ -10,7 +10,6 @@ import { componentsOf, decompositionClosure } from '@/data/decomposition';
 import { getKanjiByCharacters } from '@/data/repository/kanji';
 import { Kanji } from '@/data/types';
 import { Prefs } from '@/settings/preferences';
-import { getDecomposeToPrimitives } from '@/settings/settingsProvider';
 import { useSetting } from '@/settings/useSetting';
 import { usePalette } from '@/ui/theme';
 
@@ -23,7 +22,7 @@ function visibleChildren(char: string, primitives: boolean, known: Map<string, K
 export function RadicalTree({ character }: { character: string }) {
   const router = useRouter();
   const p = usePalette();
-  const primitives = useSetting(getDecomposeToPrimitives) ?? Prefs.decomposeToPrimitives.default;
+  const primitives = useSetting(Prefs.decomposeToPrimitives);
   const [known, setKnown] = useState<Map<string, Kanji>>(new Map());
 
   useEffect(() => {

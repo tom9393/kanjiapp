@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CardEase } from '@/domain/cardState';
 import { ReviewWord } from '@/domain/models';
-import { getRateKanjiIndividually } from '@/settings/settingsProvider';
+import { Prefs } from '@/settings/preferences';
 import { useSetting } from '@/settings/useSetting';
 import { AnswerButtons } from '@/study/components/AnswerButtons';
 import { Btn } from '@/study/components/Btn';
@@ -24,7 +24,7 @@ export function WordReveal({
 }) {
   const p = usePalette();
   // Default off (group) until the setting resolves — matches the pref default, so no wrong flash.
-  const individual = useSetting(getRateKanjiIndividually) ?? false;
+  const individual = useSetting(Prefs.rateKanjiIndividually);
   const { word, sentence, constituents } = reviewWord;
   const [picks, setPicks] = useState<Map<string, CardEase>>(new Map());
   const allRated = picks.size === constituents.length;

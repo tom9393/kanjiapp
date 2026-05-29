@@ -2,24 +2,24 @@
 // (served from the prebuilt reference.db).
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { getKanjiWithSrs } from '@/data/repository/kanji';
 import { getFlags, setFavorite, setSuspended, KanjiFlags } from '@/data/repository/flags';
-import {
-  getLists,
-  getListIdsContaining,
-  KanjiListSummary,
-} from '@/data/repository/lists';
+import { getLists, getListIdsContaining, KanjiListSummary } from '@/data/repository/lists';
 import { getReviewHistory } from '@/data/repository/reviews';
 import { getSentencesForKanji, getWordsForKanji } from '@/data/repository/reference';
-import { ExampleSentence, KanjiWithSrs, Review, srsOf, Word } from '@/data/types';
+import { srsOf } from '@/data/types';
 import { CardState } from '@/domain/cardState';
 import { MetaChips } from '@/study/components/MetaChips';
 import { Readings } from '@/study/components/Readings';
-import { AddToListModal } from '@/ui/AddToListModal';
+import { AddToListButton } from '@/ui/AddToListButton';
 import { Furigana } from '@/ui/Furigana';
 import { RadicalTree } from '@/ui/RadicalTree';
+import { Loading, NotFound } from '@/ui/screenStates';
+import { SentenceList } from '@/ui/SentenceList';
+import { ShowMore } from '@/ui/ShowMore';
+import { useAsyncResource } from '@/ui/useAsyncResource';
 import { cardStateColors, usePalette } from '@/ui/theme';
 
 const STATE_LABEL: Record<CardState, string> = {
@@ -35,28 +35,47 @@ export default function KanjiDetail() {
   const { character } = useLocalSearchParams<{ character: string }>();
   const router = useRouter();
   const p = usePalette();
-  const [card, setCard] = useState<KanjiWithSrs | null | undefined>(undefined);
-  const [history, setHistory] = useState<Review[]>([]);
-  const [words, setWords] = useState<Word[]>([]);
-  const [sentences, setSentences] = useState<ExampleSentence[]>([]);
+
+  const res = useAsyncResource(async () => {
+    const card = await getKanjiWithSrs(character);
+    if (!card) return null;
+    const [history, words, sentences] = await Promise.all([
+      getReviewHistory(character),
+      getWordsForKanji(character),
+      getSentencesForKanji(character),
+    ]);
+    return { card, history, words, sentences };
+  }, [character]);
+
+  // Mutable per-kanji state (flags + list membership), loaded into local state independently.
   const [flags, setFlags] = useState<KanjiFlags>({ favorite: false, suspended: false });
   const [lists, setLists] = useState<KanjiListSummary[]>([]);
   const [memberOf, setMemberOf] = useState<Set<number>>(new Set());
   const [wordsExpanded, setWordsExpanded] = useState(false);
-  const [sentencesExpanded, setSentencesExpanded] = useState(false);
-  const [listModalOpen, setListModalOpen] = useState(false);
 
   useEffect(() => {
-    (async () => {
-      setCard(await getKanjiWithSrs(character));
-      setHistory(await getReviewHistory(character));
-      setWords(await getWordsForKanji(character));
-      setSentences(await getSentencesForKanji(character));
-      setFlags(await getFlags(character));
-      setLists(await getLists());
-      setMemberOf(await getListIdsContaining(character));
-    })();
+    let active = true;
+    Promise.all([getFlags(character), getLists(), getListIdsContaining(character)]).then(
+      ([f, l, m]) => {
+        if (!active) return;
+        setFlags(f);
+        setLists(l);
+        setMemberOf(m);
+      },
+    );
+    return () => {
+      active = false;
+    };
   }, [character]);
+
+  if (res.status === 'loading') return <Loading />;
+  if (res.status === 'missing') return <NotFound label="Kanji not found." />;
+  const { card, history, words, sentences } = res.data;
+
+  const srs = srsOf(card);
+  const studied = card.rawSrs != null;
+  const openWord = (id: number) => router.push({ pathname: '/word/[id]', params: { id } });
+  const openSentence = (id: number) => router.push({ pathname: '/sentence/[id]', params: { id } });
 
   const toggleFavorite = () => {
     const next = !flags.favorite;
@@ -68,27 +87,6 @@ export default function KanjiDetail() {
     setFlags((f) => ({ ...f, suspended: next }));
     setSuspended(character, next);
   };
-
-  if (card === undefined) {
-    return (
-      <View style={[styles.center, { backgroundColor: p.background }]}>
-        <ActivityIndicator />
-      </View>
-    );
-  }
-
-  if (card === null) {
-    return (
-      <View style={[styles.center, { backgroundColor: p.background }]}>
-        <Text style={{ color: p.text }}>Kanji not found.</Text>
-      </View>
-    );
-  }
-
-  const srs = srsOf(card);
-  const studied = card.rawSrs != null;
-  const openWord = (id: number) => router.push({ pathname: '/word/[id]', params: { id } });
-  const openSentence = (id: number) => router.push({ pathname: '/sentence/[id]', params: { id } });
 
   return (
     <ScrollView style={{ backgroundColor: p.background }} contentContainerStyle={styles.content}>
@@ -119,22 +117,7 @@ export default function KanjiDetail() {
         <StatusRow label="Reviews" value={`${history.length}`} />
       </View>
 
-      <Pressable
-        onPress={() => setListModalOpen(true)}
-        style={({ pressed }) => [
-          styles.addToListBtn,
-          styles.section,
-          { borderColor: p.border, backgroundColor: p.surfaceVariant },
-          pressed && { opacity: 0.7 },
-        ]}
-      >
-        <Text style={[styles.addToListLabel, { color: p.text }]}>
-          {memberOf.size === 0 ? '+ Add to list' : `In ${memberOf.size} list${memberOf.size === 1 ? '' : 's'} — edit`}
-        </Text>
-      </Pressable>
-
-      <AddToListModal
-        visible={listModalOpen}
+      <AddToListButton
         target={{ kind: 'kanji', character }}
         lists={lists}
         memberOf={memberOf}
@@ -142,7 +125,7 @@ export default function KanjiDetail() {
           setMemberOf(nextMembers);
           setLists(nextLists);
         }}
-        onClose={() => setListModalOpen(false)}
+        style={styles.section}
       />
 
       <RadicalTree character={card.kanji.character} />
@@ -173,51 +156,8 @@ export default function KanjiDetail() {
         </View>
       )}
 
-      {sentences.length > 0 && (
-        <View style={[styles.statusCard, styles.section, { backgroundColor: p.surfaceVariant }]}>
-          <Text style={[styles.sectionTitle, { color: p.text }]}>Sentences</Text>
-          {(sentencesExpanded ? sentences : sentences.slice(0, COLLAPSE_LIMIT)).map((s) => (
-            <Pressable
-              key={s.id}
-              onPress={() => openSentence(s.id)}
-              style={({ pressed }) => [styles.sentenceRow, pressed && { opacity: 0.6 }]}
-            >
-              <View style={styles.sentenceText}>
-                <Text style={[styles.sentenceJp, { color: p.text }]}>{s.japanese}</Text>
-                <Text style={{ color: p.textSecondary }}>{s.english}</Text>
-              </View>
-              <Text style={[styles.chevron, { color: p.textSecondary }]}>›</Text>
-            </Pressable>
-          ))}
-          {sentences.length > COLLAPSE_LIMIT && (
-            <ShowMore
-              expanded={sentencesExpanded}
-              hiddenCount={sentences.length - COLLAPSE_LIMIT}
-              onToggle={() => setSentencesExpanded((v) => !v)}
-            />
-          )}
-        </View>
-      )}
+      <SentenceList sentences={sentences} onOpen={openSentence} style={styles.section} />
     </ScrollView>
-  );
-}
-
-function ShowMore({
-  expanded,
-  hiddenCount,
-  onToggle,
-}: {
-  expanded: boolean;
-  hiddenCount: number;
-  onToggle: () => void;
-}) {
-  const p = usePalette();
-  return (
-    <Pressable onPress={onToggle} style={styles.showMore} hitSlop={8}>
-      <Text style={{ color: p.primary, fontWeight: '600' }}>
-        {expanded ? 'Show less' : `Show ${hiddenCount} more`}
-      </Text>
-    </Pressable>
   );
 }
 
@@ -247,7 +187,6 @@ function StatusRow({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { padding: 16, alignItems: 'center' },
   glyph: { fontSize: 96, fontWeight: '700' },
   readings: { marginTop: 12 },
@@ -264,16 +203,4 @@ const styles = StyleSheet.create({
   wordRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 5 },
   wordText: { flex: 1 },
   chevron: { fontSize: 22 },
-  sentenceRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6 },
-  sentenceText: { flex: 1 },
-  sentenceJp: { fontSize: 16, lineHeight: 24 },
-  showMore: { paddingTop: 10 },
-  addToListBtn: {
-    alignSelf: 'stretch',
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  addToListLabel: { fontSize: 15, fontWeight: '600' },
 });

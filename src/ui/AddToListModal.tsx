@@ -21,6 +21,7 @@ import {
   removeWordFromList,
   renameList,
 } from '@/data/repository/lists';
+import { confirmDestructive } from '@/ui/confirm';
 import { usePalette } from '@/ui/theme';
 
 /** What the modal is adding to lists: a single kanji character or a word (by id). */
@@ -84,20 +85,17 @@ export function AddToListModal({
         text: 'Delete',
         style: 'destructive',
         onPress: () =>
-          Alert.alert('Delete list', `Delete "${list.name}"? This cannot be undone.`, [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Delete',
-              style: 'destructive',
-              onPress: async () => {
-                await deleteList(list.id);
-                const nextLists = lists.filter((l) => l.id !== list.id);
-                const nextMembers = new Set(memberOf);
-                nextMembers.delete(list.id);
-                onChange(nextMembers, nextLists);
-              },
+          confirmDestructive({
+            title: 'Delete list',
+            message: `Delete "${list.name}"? This cannot be undone.`,
+            onConfirm: async () => {
+              await deleteList(list.id);
+              const nextLists = lists.filter((l) => l.id !== list.id);
+              const nextMembers = new Set(memberOf);
+              nextMembers.delete(list.id);
+              onChange(nextMembers, nextLists);
             },
-          ]),
+          }),
       },
     ]);
   };

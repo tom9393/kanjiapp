@@ -10,7 +10,6 @@ import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-nativ
 import Svg, { Path } from 'react-native-svg';
 import { getStrokes } from '@/data/repository/strokes';
 import { Prefs } from '@/settings/preferences';
-import { getAnimateStrokes } from '@/settings/settingsProvider';
 import { useSetting } from '@/settings/useSetting';
 import { usePalette } from '@/ui/theme';
 
@@ -27,7 +26,7 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 export function StrokeOrderDiagram({ character }: { character: string }) {
   const p = usePalette();
-  const animate = useSetting(getAnimateStrokes) ?? Prefs.animateStrokes.default;
+  const animate = useSetting(Prefs.animateStrokes);
   const [paths, setPaths] = useState<string[]>([]);
 
   useEffect(() => {

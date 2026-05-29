@@ -3,7 +3,7 @@
 // are rendered in a separate section below the kanji grid.
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import {
   deleteList,
@@ -18,8 +18,10 @@ import {
 import { frequencyRank, KanjiWithSrs, Word } from '@/data/types';
 import { LoadRequest } from '@/state/studyStore';
 import { Btn } from '@/study/components/Btn';
+import { confirmDestructive } from '@/ui/confirm';
 import { Furigana } from '@/ui/Furigana';
 import { KanjiGrid } from '@/ui/KanjiGrid';
+import { Loading, NotFound } from '@/ui/screenStates';
 import { usePalette } from '@/ui/theme';
 
 export default function ListDetail() {
@@ -54,21 +56,8 @@ export default function ListDetail() {
 
   useFocusEffect(refresh);
 
-  if (list === undefined) {
-    return (
-      <View style={[styles.center, { backgroundColor: p.background }]}>
-        <ActivityIndicator />
-      </View>
-    );
-  }
-
-  if (list === null) {
-    return (
-      <View style={[styles.center, { backgroundColor: p.background }]}>
-        <Text style={{ color: p.text }}>List not found.</Text>
-      </View>
-    );
-  }
+  if (list === undefined) return <Loading />;
+  if (list === null) return <NotFound label="List not found." />;
 
   const startStudy = () => {
     const req: LoadRequest = { kind: 'list', listId };
@@ -81,47 +70,37 @@ export default function ListDetail() {
   const openWord = (id: number) =>
     router.push({ pathname: '/word/[id]', params: { id: String(id) } });
 
-  const confirmRemove = (character: string) => {
-    Alert.alert('Remove kanji', `Remove ${character} from "${list.name}"?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: async () => {
-          await removeKanjiFromList(listId, character);
-          refresh();
-        },
+  const confirmRemove = (character: string) =>
+    confirmDestructive({
+      title: 'Remove kanji',
+      message: `Remove ${character} from "${list.name}"?`,
+      confirmLabel: 'Remove',
+      onConfirm: async () => {
+        await removeKanjiFromList(listId, character);
+        refresh();
       },
-    ]);
-  };
+    });
 
-  const confirmRemoveWord = (word: Word) => {
-    Alert.alert('Remove word', `Remove ${word.kanjiForm} from "${list.name}"?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: async () => {
-          await removeWordFromList(listId, word.id);
-          refresh();
-        },
+  const confirmRemoveWord = (word: Word) =>
+    confirmDestructive({
+      title: 'Remove word',
+      message: `Remove ${word.kanjiForm} from "${list.name}"?`,
+      confirmLabel: 'Remove',
+      onConfirm: async () => {
+        await removeWordFromList(listId, word.id);
+        refresh();
       },
-    ]);
-  };
+    });
 
-  const confirmDelete = () => {
-    Alert.alert('Delete list', `Delete "${list.name}"? This cannot be undone.`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          await deleteList(listId);
-          router.back();
-        },
+  const confirmDelete = () =>
+    confirmDestructive({
+      title: 'Delete list',
+      message: `Delete "${list.name}"? This cannot be undone.`,
+      onConfirm: async () => {
+        await deleteList(listId);
+        router.back();
       },
-    ]);
-  };
+    });
 
   const submitRename = async () => {
     const trimmed = draftName.trim();
@@ -230,7 +209,6 @@ function countLabel(kanjiCount: number, wordCount: number): string {
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 6 },
   titleWrap: { paddingVertical: 4 },
   title: { fontSize: 20, fontWeight: '700' },

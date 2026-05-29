@@ -8,7 +8,6 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Svg, { Line, Polyline } from 'react-native-svg';
 import { Prefs } from '@/settings/preferences';
-import { getStrokeWidth } from '@/settings/settingsProvider';
 import { useSetting } from '@/settings/useSetting';
 import { Btn } from '@/study/components/Btn';
 import { usePalette } from '@/ui/theme';
@@ -20,7 +19,7 @@ interface Point {
 
 export function DrawingArea() {
   const p = usePalette();
-  const strokeWidth = useSetting(getStrokeWidth) ?? Prefs.strokeWidth.default;
+  const strokeWidth = useSetting(Prefs.strokeWidth);
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [completedStrokes, setCompletedStrokes] = useState<Point[][]>([]);
   const [currentStroke, setCurrentStroke] = useState<Point[]>([]);
