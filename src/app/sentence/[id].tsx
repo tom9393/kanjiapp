@@ -8,7 +8,7 @@ import { getSentenceById, lookupWordsByForms } from '@/data/repository/reference
 import { Word } from '@/data/types';
 import { candidateForms, segment } from '@/domain/sentenceParser';
 import { Furigana } from '@/ui/Furigana';
-import { Loading, NotFound } from '@/ui/screenStates';
+import { Loading, LoadError, NotFound } from '@/ui/screenStates';
 import { useAsyncResource } from '@/ui/useAsyncResource';
 import { usePalette } from '@/ui/theme';
 
@@ -26,6 +26,7 @@ export default function SentenceDetail() {
   }, [id]);
 
   if (res.status === 'loading') return <Loading />;
+  if (res.status === 'error') return <LoadError />;
   if (res.status === 'missing') return <NotFound label="Sentence not found." />;
   const { sentence, words } = res.data;
 

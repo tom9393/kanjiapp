@@ -22,6 +22,16 @@ export function NotFound({ label }: { label: string }) {
   );
 }
 
+export function LoadError({ label = "Couldn't load this. Please try again." }: { label?: string }) {
+  const p = usePalette();
+  return (
+    <View style={[styles.center, { backgroundColor: p.background }]}>
+      <Ionicons name="alert-circle-outline" size={48} color={p.danger} style={styles.icon} />
+      <Text style={{ color: p.text }}>{label}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   icon: { marginBottom: 12, opacity: 0.6 },

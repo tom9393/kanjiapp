@@ -8,6 +8,8 @@ import {
   mapSentence,
   mapWord,
   placeholders,
+  RawSentenceRow,
+  RawWordRow,
 } from '@/data/repository/mappers';
 import { parseQuery } from '@/domain/search';
 
@@ -16,7 +18,7 @@ const WORD_SEARCH_LIMIT = 60;
 // limit omitted → all rows (SQLite treats LIMIT -1 as no upper bound).
 export async function getWordsForKanji(character: string, limit?: number): Promise<Word[]> {
   const db = await getReferenceDb();
-  const rows = await db.getAllAsync<any>(
+  const rows = await db.getAllAsync<RawWordRow>(
     `SELECT w.* FROM word w
      INNER JOIN word_char_index wci ON w.id = wci.wordId
      WHERE wci.character = ?
@@ -29,7 +31,7 @@ export async function getWordsForKanji(character: string, limit?: number): Promi
 
 export async function getSentencesForKanji(character: string, limit?: number): Promise<ExampleSentence[]> {
   const db = await getReferenceDb();
-  const rows = await db.getAllAsync<any>(
+  const rows = await db.getAllAsync<RawSentenceRow>(
     `SELECT s.* FROM example_sentence s
      INNER JOIN sentence_char_index sci ON s.id = sci.sentenceId
      WHERE sci.character = ?
@@ -57,7 +59,7 @@ export async function getSentenceContaining(
   if (!anchor) return null;
 
   const db = await getReferenceDb();
-  const candidates = await db.getAllAsync<any>(
+  const candidates = await db.getAllAsync<RawSentenceRow>(
     `SELECT DISTINCT s.* FROM example_sentence s
      INNER JOIN sentence_char_index sci ON s.id = sci.sentenceId
      WHERE sci.character = ? AND s.japanese LIKE '%' || ? || '%'
@@ -76,7 +78,7 @@ export async function getSentenceContaining(
 
 export async function getWordById(id: number): Promise<Word | null> {
   const db = await getReferenceDb();
-  const row = await db.getFirstAsync<any>('SELECT * FROM word WHERE id = ?', [id]);
+  const row = await db.getFirstAsync<RawWordRow>('SELECT * FROM word WHERE id = ?', [id]);
   return row ? mapWord(row) : null;
 }
 
@@ -87,7 +89,7 @@ export async function getWordsByIds(ids: number[]): Promise<Word[]> {
   const CHUNK = 800; // one placeholder per id; well under SQLite's 999 bound-variable limit
   for (let i = 0; i < ids.length; i += CHUNK) {
     const chunk = ids.slice(i, i + CHUNK);
-    const rows = await db.getAllAsync<any>(
+    const rows = await db.getAllAsync<RawWordRow>(
       `SELECT * FROM word WHERE id IN (${placeholders(chunk.length)})`,
       chunk,
     );
@@ -98,7 +100,7 @@ export async function getWordsByIds(ids: number[]): Promise<Word[]> {
 
 export async function getSentenceById(id: number): Promise<ExampleSentence | null> {
   const db = await getReferenceDb();
-  const row = await db.getFirstAsync<any>('SELECT * FROM example_sentence WHERE id = ?', [id]);
+  const row = await db.getFirstAsync<RawSentenceRow>('SELECT * FROM example_sentence WHERE id = ?', [id]);
   return row ? mapSentence(row) : null;
 }
 
@@ -121,7 +123,7 @@ export async function lookupWordsByForms(forms: string[]): Promise<Map<string, W
   for (let i = 0; i < unique.length; i += CHUNK) {
     const chunk = unique.slice(i, i + CHUNK);
     const ph = placeholders(chunk.length);
-    const rows = await db.getAllAsync<any>(
+    const rows = await db.getAllAsync<RawWordRow>(
       `SELECT * FROM word WHERE kanjiForm IN (${ph}) OR kana IN (${ph})`,
       [...chunk, ...chunk],
     );
@@ -144,7 +146,7 @@ export async function getSentencesContainingWord(word: Word, limit = 20): Promis
   const anchor = [...word.kanjiForm].find((c) => isKanjiCode(c.codePointAt(0)!));
   if (!anchor) return [];
   const db = await getReferenceDb();
-  const rows = await db.getAllAsync<any>(
+  const rows = await db.getAllAsync<RawSentenceRow>(
     `SELECT DISTINCT s.* FROM example_sentence s
      INNER JOIN sentence_char_index sci ON s.id = sci.sentenceId
      WHERE sci.character = ? AND s.japanese LIKE '%' || ? || '%'
@@ -164,7 +166,7 @@ export async function searchWords(input: string, limit = WORD_SEARCH_LIMIT): Pro
 
   const out: Word[] = [];
   const seen = new Set<number>();
-  const add = (rows: any[]) => {
+  const add = (rows: RawWordRow[]) => {
     for (const w of rows.map(mapWord)) {
       if (!seen.has(w.id)) {
         seen.add(w.id);
@@ -182,7 +184,7 @@ export async function searchWords(input: string, limit = WORD_SEARCH_LIMIT): Pro
       params.push(`${q.raw}%`);
     }
     add(
-      await db.getAllAsync<any>(
+      await db.getAllAsync<RawWordRow>(
         `SELECT * FROM word WHERE ${conds.join(' OR ')}
          ORDER BY common DESC, length(kanjiForm) LIMIT ?`,
         [...params, limit],
@@ -193,7 +195,7 @@ export async function searchWords(input: string, limit = WORD_SEARCH_LIMIT): Pro
   // English meaning substring (Latin input), filling any remaining slots.
   if (!q.hasJapanese && out.length < limit) {
     add(
-      await db.getAllAsync<any>(
+      await db.getAllAsync<RawWordRow>(
         `SELECT * FROM word WHERE meaning LIKE ?
          ORDER BY common DESC, length(kanjiForm) LIMIT ?`,
         [`%${q.raw}%`, limit],

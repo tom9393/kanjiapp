@@ -13,7 +13,55 @@ export function placeholders(count: number): string {
   return new Array(count).fill('?').join(',');
 }
 
-export function mapKanji(r: any): Kanji {
+// --- Raw DB row shapes -------------------------------------------------------
+// The columns each query returns, before mapping to domain types. Typing getAllAsync/getFirstAsync
+// against these instead of `any` catches column renames and typos at the one boundary where
+// untyped DB data crosses into the app.
+
+/** A row of the Kanji table (also the `k.*` half of a JOIN_SELECT row). */
+export interface RawKanjiRow {
+  character: string;
+  strokes: number;
+  grade: number;
+  frequency: number;
+  jlpt: number;
+  kanken: number;
+  meanings: string;
+  on: string;
+  kun: string;
+}
+
+/** The Srs columns aliased as s_* by JOIN_SELECT. They travel as a group: a LEFT JOIN with no
+ *  matching Srs row yields all-null, and the new-card queries omit them entirely — so on a
+ *  RawKanjiWithSrsRow they are optional, and a present s_type implies the rest are present. */
+export interface RawSrsColumns {
+  s_type: number;
+  s_due: number;
+  s_interval: number;
+  s_factor: number;
+  s_lapses: number;
+}
+
+/** A Kanji row plus its optional joined Srs columns — the shape JOIN_SELECT returns. */
+export type RawKanjiWithSrsRow = RawKanjiRow & Partial<RawSrsColumns>;
+
+/** A row of the word table in the read-only reference.db (`common` is stored as 0/1). */
+export interface RawWordRow {
+  id: number;
+  kanjiForm: string;
+  kana: string;
+  meaning: string;
+  common: number;
+}
+
+/** A row of the example_sentence table in the read-only reference.db. */
+export interface RawSentenceRow {
+  id: number;
+  japanese: string;
+  english: string;
+}
+
+export function mapKanji(r: RawKanjiRow): Kanji {
   return {
     character: r.character,
     strokes: r.strokes,
@@ -28,23 +76,25 @@ export function mapKanji(r: any): Kanji {
 }
 
 /** Joined rows alias Srs columns as s_* so they don't clash with Kanji.character. */
-function mapSrsFromJoin(r: any): Srs | null {
+function mapSrsFromJoin(r: RawKanjiWithSrsRow): Srs | null {
   if (r.s_type == null) return null;
+  // s_type present ⇒ the LEFT JOIN matched a row, so the rest of the s_* group is present too.
+  const s = r as RawSrsColumns;
   return {
     character: r.character,
-    type: cardStateFromCode(r.s_type),
-    due: r.s_due,
-    interval: r.s_interval,
-    factor: r.s_factor,
-    lapses: r.s_lapses,
+    type: cardStateFromCode(s.s_type),
+    due: s.s_due,
+    interval: s.s_interval,
+    factor: s.s_factor,
+    lapses: s.s_lapses,
   };
 }
 
-export function mapKanjiWithSrs(r: any): KanjiWithSrs {
+export function mapKanjiWithSrs(r: RawKanjiWithSrsRow): KanjiWithSrs {
   return { kanji: mapKanji(r), rawSrs: mapSrsFromJoin(r) };
 }
 
-export function mapWord(r: any): Word {
+export function mapWord(r: RawWordRow): Word {
   return {
     id: r.id,
     kanjiForm: r.kanjiForm,
@@ -54,7 +104,7 @@ export function mapWord(r: any): Word {
   };
 }
 
-export function mapSentence(r: any): ExampleSentence {
+export function mapSentence(r: RawSentenceRow): ExampleSentence {
   return { id: r.id, japanese: r.japanese, english: r.english };
 }
 

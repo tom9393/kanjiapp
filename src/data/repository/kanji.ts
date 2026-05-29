@@ -2,19 +2,26 @@
 // + the Kanji/Srs Room DAOs.
 import { getDb } from '@/data/db';
 import { Kanji, KanjiWithSrs, Srs } from '@/data/types';
-import { JOIN_SELECT, mapKanji, mapKanjiWithSrs, placeholders } from '@/data/repository/mappers';
+import {
+  JOIN_SELECT,
+  mapKanji,
+  mapKanjiWithSrs,
+  placeholders,
+  RawKanjiRow,
+  RawKanjiWithSrsRow,
+} from '@/data/repository/mappers';
 
 // --- Kanji + Srs reads -------------------------------------------------------
 
 export async function getCharactersByYear(year: number): Promise<Kanji[]> {
   const db = await getDb();
-  const rows = await db.getAllAsync<any>('SELECT * FROM Kanji WHERE grade = ?', [year]);
+  const rows = await db.getAllAsync<RawKanjiRow>('SELECT * FROM Kanji WHERE grade = ?', [year]);
   return rows.map(mapKanji);
 }
 
 export async function getCharacterByYearWithSrs(year: number): Promise<KanjiWithSrs[]> {
   const db = await getDb();
-  const rows = await db.getAllAsync<any>(`${JOIN_SELECT} WHERE k.grade = ?`, [year]);
+  const rows = await db.getAllAsync<RawKanjiWithSrsRow>(`${JOIN_SELECT} WHERE k.grade = ?`, [year]);
   return rows.map(mapKanjiWithSrs);
 }
 
@@ -22,19 +29,19 @@ export type LevelField = 'grade' | 'jlpt' | 'kanken';
 
 export async function getCharactersByLevelWithSrs(field: LevelField, value: number): Promise<KanjiWithSrs[]> {
   const db = await getDb();
-  const rows = await db.getAllAsync<any>(`${JOIN_SELECT} WHERE k.${field} = ?`, [value]);
+  const rows = await db.getAllAsync<RawKanjiWithSrsRow>(`${JOIN_SELECT} WHERE k.${field} = ?`, [value]);
   return rows.map(mapKanjiWithSrs);
 }
 
 export async function getKanjiWithSrs(character: string): Promise<KanjiWithSrs | null> {
   const db = await getDb();
-  const row = await db.getFirstAsync<any>(`${JOIN_SELECT} WHERE k.character = ?`, [character]);
+  const row = await db.getFirstAsync<RawKanjiWithSrsRow>(`${JOIN_SELECT} WHERE k.character = ?`, [character]);
   return row ? mapKanjiWithSrs(row) : null;
 }
 
 export async function getDueCardsWithSrs(currentTime: number): Promise<KanjiWithSrs[]> {
   const db = await getDb();
-  const rows = await db.getAllAsync<any>(
+  const rows = await db.getAllAsync<RawKanjiWithSrsRow>(
     `SELECT k.*, s.type AS s_type, s.due AS s_due, s.interval AS s_interval,
             s.factor AS s_factor, s.lapses AS s_lapses
      FROM Kanji k INNER JOIN Srs s ON k.character = s.character
@@ -47,7 +54,7 @@ export async function getDueCardsWithSrs(currentTime: number): Promise<KanjiWith
 
 export async function getNewCardsWithSrs(limit: number): Promise<KanjiWithSrs[]> {
   const db = await getDb();
-  const rows = await db.getAllAsync<any>(
+  const rows = await db.getAllAsync<RawKanjiRow>(
     `SELECT * FROM Kanji WHERE character NOT IN (SELECT character FROM Srs)
        AND character NOT IN (SELECT character FROM KanjiFlag WHERE suspended = 1) LIMIT ?`,
     [limit],
@@ -58,7 +65,7 @@ export async function getNewCardsWithSrs(limit: number): Promise<KanjiWithSrs[]>
 export async function getKanjiWithSrsByCharacters(characters: string[]): Promise<KanjiWithSrs[]> {
   if (characters.length === 0) return [];
   const db = await getDb();
-  const rows = await db.getAllAsync<any>(
+  const rows = await db.getAllAsync<RawKanjiWithSrsRow>(
     `${JOIN_SELECT} WHERE k.character IN (${placeholders(characters.length)})`,
     characters,
   );
@@ -67,7 +74,7 @@ export async function getKanjiWithSrsByCharacters(characters: string[]): Promise
 
 export async function getAllKanjiWithSrs(): Promise<KanjiWithSrs[]> {
   const db = await getDb();
-  const rows = await db.getAllAsync<any>(JOIN_SELECT);
+  const rows = await db.getAllAsync<RawKanjiWithSrsRow>(JOIN_SELECT);
   return rows.map(mapKanjiWithSrs);
 }
 
@@ -78,7 +85,7 @@ export async function getKanjiByCharacters(characters: string[]): Promise<Kanji[
   const CHUNK = 800; // one placeholder per character; well under SQLite's 999 bound-variable limit
   for (let i = 0; i < characters.length; i += CHUNK) {
     const chunk = characters.slice(i, i + CHUNK);
-    const rows = await db.getAllAsync<any>(
+    const rows = await db.getAllAsync<RawKanjiRow>(
       `SELECT * FROM Kanji WHERE character IN (${placeholders(chunk.length)})`,
       chunk,
     );

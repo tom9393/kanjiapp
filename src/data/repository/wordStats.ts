@@ -5,7 +5,16 @@ import { getDb } from '@/data/db';
 import { WordStat } from '@/data/types';
 import { placeholders } from '@/data/repository/mappers';
 
-function mapWordStat(r: any): WordStat {
+/** A row of the WordStat table (its columns are 1:1 with the WordStat domain type). */
+type RawWordStatRow = {
+  wordId: number;
+  firstSeen: number;
+  lastSeen: number;
+  timesSeen: number;
+  familiarity: number;
+};
+
+function mapWordStat(r: RawWordStatRow): WordStat {
   return {
     wordId: r.wordId,
     firstSeen: r.firstSeen,
@@ -17,7 +26,7 @@ function mapWordStat(r: any): WordStat {
 
 export async function getWordStat(wordId: number): Promise<WordStat | null> {
   const db = await getDb();
-  const row = await db.getFirstAsync<any>('SELECT * FROM WordStat WHERE wordId = ?', [wordId]);
+  const row = await db.getFirstAsync<RawWordStatRow>('SELECT * FROM WordStat WHERE wordId = ?', [wordId]);
   return row ? mapWordStat(row) : null;
 }
 
@@ -28,7 +37,7 @@ export async function getWordStatsByIds(ids: number[]): Promise<Map<number, Word
   const CHUNK = 800; // one placeholder per id, well under SQLite's 999 bound-variable limit
   for (let i = 0; i < ids.length; i += CHUNK) {
     const chunk = ids.slice(i, i + CHUNK);
-    const rows = await db.getAllAsync<any>(
+    const rows = await db.getAllAsync<RawWordStatRow>(
       `SELECT * FROM WordStat WHERE wordId IN (${placeholders(chunk.length)})`,
       chunk,
     );

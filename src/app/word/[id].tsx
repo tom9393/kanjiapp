@@ -11,7 +11,7 @@ import { Kanji } from '@/data/types';
 import { isKanji } from '@/domain/readingFormatter';
 import { AddToListButton } from '@/ui/AddToListButton';
 import { Furigana } from '@/ui/Furigana';
-import { Loading, NotFound } from '@/ui/screenStates';
+import { Loading, LoadError, NotFound } from '@/ui/screenStates';
 import { SentenceList } from '@/ui/SentenceList';
 import { useAsyncResource } from '@/ui/useAsyncResource';
 import { usePalette } from '@/ui/theme';
@@ -49,6 +49,7 @@ export default function WordDetail() {
   }, [id]);
 
   if (res.status === 'loading') return <Loading />;
+  if (res.status === 'error') return <LoadError />;
   if (res.status === 'missing') return <NotFound label="Word not found." />;
   const { word, kanji, sentences } = res.data;
 

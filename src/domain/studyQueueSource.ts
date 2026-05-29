@@ -274,12 +274,12 @@ async function hydrateWord(
 }
 
 async function buildExamples(
-  words: { kanjiForm: string; kana: string }[],
+  words: Word[],
   allowedKanji: Set<string>,
   kanjiCache: Map<string, Kanji>,
 ): Promise<WordWithSentence[]> {
   const result: WordWithSentence[] = [];
-  for (const word of words as any[]) {
+  for (const word of words) {
     if (result.length >= WORD_OPTIONS_PER_CARD) break;
     const neededChars = new Set([...word.kanjiForm].filter((c) => isKanji(c as string)) as string[]);
     if ([...neededChars].some((c) => !allowedKanji.has(c))) continue;

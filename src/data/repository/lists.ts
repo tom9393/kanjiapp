@@ -4,7 +4,7 @@
 // and (listId, wordId) respectively.
 import { getDb } from '@/data/db';
 import { KanjiWithSrs, Word } from '@/data/types';
-import { JOIN_SELECT, mapKanjiWithSrs } from '@/data/repository/mappers';
+import { JOIN_SELECT, mapKanjiWithSrs, RawKanjiWithSrsRow } from '@/data/repository/mappers';
 import { getWordsByIds } from '@/data/repository/reference';
 
 export interface KanjiList {
@@ -58,7 +58,7 @@ export async function deleteList(id: number): Promise<void> {
 
 export async function getListMembers(listId: number): Promise<KanjiWithSrs[]> {
   const db = await getDb();
-  const rows = await db.getAllAsync<any>(
+  const rows = await db.getAllAsync<RawKanjiWithSrsRow>(
     `${JOIN_SELECT} INNER JOIN KanjiListMember m ON k.character = m.character WHERE m.listId = ?`,
     [listId],
   );

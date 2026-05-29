@@ -21,7 +21,7 @@ import { Readings } from '@/study/components/Readings';
 import { AddToListButton } from '@/ui/AddToListButton';
 import { Furigana } from '@/ui/Furigana';
 import { RadicalTree } from '@/ui/RadicalTree';
-import { Loading, NotFound } from '@/ui/screenStates';
+import { Loading, LoadError, NotFound } from '@/ui/screenStates';
 import { SentenceList } from '@/ui/SentenceList';
 import { ShowMore } from '@/ui/ShowMore';
 import { useAsyncResource } from '@/ui/useAsyncResource';
@@ -82,6 +82,7 @@ export default function KanjiDetail() {
   }, [character]);
 
   if (res.status === 'loading') return <Loading />;
+  if (res.status === 'error') return <LoadError />;
   if (res.status === 'missing') return <NotFound label="Kanji not found." />;
   const { card, history, wordGroups, sentences } = res.data;
 
@@ -97,15 +98,23 @@ export default function KanjiDetail() {
       return next;
     });
 
+  // Optimistic toggles: flip the flag immediately, then revert it if the DB write fails so the
+  // UI never silently diverges from what's persisted.
   const toggleFavorite = () => {
     const next = !flags.favorite;
     setFlags((f) => ({ ...f, favorite: next }));
-    setFavorite(character, next);
+    setFavorite(character, next).catch((e) => {
+      console.error('Failed to update favorite', e);
+      setFlags((f) => ({ ...f, favorite: !next }));
+    });
   };
   const toggleSuspended = () => {
     const next = !flags.suspended;
     setFlags((f) => ({ ...f, suspended: next }));
-    setSuspended(character, next);
+    setSuspended(character, next).catch((e) => {
+      console.error('Failed to update suspended', e);
+      setFlags((f) => ({ ...f, suspended: !next }));
+    });
   };
 
   return (

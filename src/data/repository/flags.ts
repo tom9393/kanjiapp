@@ -2,7 +2,7 @@
 // lazily the first time either flag is set; the upsert preserves the flag it isn't changing.
 import { getDb } from '@/data/db';
 import { KanjiWithSrs } from '@/data/types';
-import { JOIN_SELECT, mapKanjiWithSrs } from '@/data/repository/mappers';
+import { JOIN_SELECT, mapKanjiWithSrs, RawKanjiWithSrsRow } from '@/data/repository/mappers';
 
 export interface KanjiFlags {
   favorite: boolean;
@@ -46,7 +46,7 @@ export async function getSuspendedCharacters(): Promise<Set<string>> {
 
 export async function getFavoriteKanji(): Promise<KanjiWithSrs[]> {
   const db = await getDb();
-  const rows = await db.getAllAsync<any>(
+  const rows = await db.getAllAsync<RawKanjiWithSrsRow>(
     `${JOIN_SELECT} INNER JOIN KanjiFlag f ON k.character = f.character WHERE f.favorite = 1`,
   );
   return rows.map(mapKanjiWithSrs);
