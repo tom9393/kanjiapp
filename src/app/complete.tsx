@@ -13,7 +13,7 @@ export default function StudyComplete() {
     <View style={[styles.container, { backgroundColor: p.background }]}>
       <Text style={[styles.title, { color: p.text }]}>Congratulations!</Text>
       <Text style={[styles.body, { color: p.text }]}>You&apos;ve finished all your cards for today.</Text>
-      <Btn label="Back to home" onPress={() => router.replace('/')} style={styles.action} />
+      <Btn label="Back to home" onPress={() => router.dismissAll()} style={styles.action} />
     </View>
   );
 }
