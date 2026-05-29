@@ -2,9 +2,9 @@
 // numbers an inline numeric field — same row rendering the combined screen used before.
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
-import { BoolPref, NumberPref } from '@/settings/preferences';
+import { BoolPref, EnumPref, NumberPref } from '@/settings/preferences';
 import { ALL_PREFS, AnyPref, SECTIONS } from '@/settings/sections';
 import { useSettingsStore } from '@/state/settingsStore';
 import { usePalette } from '@/ui/theme';
@@ -45,21 +45,48 @@ export default function SettingsSection() {
   );
 }
 
-function SettingRow({ pref, value }: { pref: AnyPref; value: number | boolean }) {
+function SettingRow({ pref, value }: { pref: AnyPref; value: number | boolean | string }) {
   const p = usePalette();
+  const isEnum = 'options' in pref;
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, isEnum && styles.rowColumn]}>
       <View style={styles.rowText}>
         <Text style={[styles.label, { color: p.text }]}>{pref.label}</Text>
         {pref.description ? (
           <Text style={[styles.description, { color: p.textSecondary }]}>{pref.description}</Text>
         ) : null}
       </View>
-      {typeof pref.default === 'boolean' ? (
+      {isEnum ? (
+        <EnumControl pref={pref} value={value as string} />
+      ) : typeof pref.default === 'boolean' ? (
         <BoolControl pref={pref as BoolPref} value={value as boolean} />
       ) : (
         <NumberControl pref={pref as NumberPref} value={value as number} />
       )}
+    </View>
+  );
+}
+
+function EnumControl({ pref, value }: { pref: EnumPref; value: string }) {
+  const p = usePalette();
+  const updateEnum = useSettingsStore((s) => s.updateEnum);
+  return (
+    <View style={styles.pillRow}>
+      {pref.options.map((opt) => {
+        const selected = opt.value === value;
+        return (
+          <Pressable
+            key={opt.value}
+            onPress={() => updateEnum(pref, opt.value)}
+            style={[
+              styles.pill,
+              { borderColor: selected ? p.primary : p.border, backgroundColor: selected ? p.primary : 'transparent' },
+            ]}
+          >
+            <Text style={[styles.pillText, { color: selected ? p.background : p.text }]}>{opt.label}</Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
@@ -103,7 +130,11 @@ const styles = StyleSheet.create({
   card: { borderRadius: 12, overflow: 'hidden' },
   divider: { height: StyleSheet.hairlineWidth, marginHorizontal: 16 },
   row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 16 },
+  rowColumn: { flexDirection: 'column', alignItems: 'stretch', gap: 12 },
   rowText: { flex: 1, gap: 2 },
+  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  pill: { borderWidth: 1, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 8 },
+  pillText: { fontSize: 14 },
   label: { fontSize: 16 },
   description: { fontSize: 13 },
   input: {

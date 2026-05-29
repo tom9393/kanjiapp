@@ -1,8 +1,8 @@
 // Settings grouped into submenus. The settings menu lists these by title; each id is the
 // route param for /settings/[section], which renders that group's preferences.
-import { BoolPref, NumberPref, Prefs } from '@/settings/preferences';
+import { BoolPref, EnumPref, NumberPref, Prefs } from '@/settings/preferences';
 
-export type AnyPref = NumberPref | BoolPref;
+export type AnyPref = NumberPref | BoolPref | EnumPref;
 
 export interface Section {
   id: string;
@@ -15,7 +15,7 @@ export const SECTIONS: Section[] = [
   {
     id: 'study',
     title: 'Study',
-    prefs: [Prefs.maxReviewsPerDay, Prefs.newCardsPerDay, Prefs.dailyResetHour, Prefs.learningRepetitions, Prefs.rateKanjiIndividually],
+    prefs: [Prefs.maxReviewsPerDay, Prefs.newCardsPerDay, Prefs.dailyResetHour, Prefs.learningRepetitions, Prefs.rateKanjiIndividually, Prefs.reviewWordSelection],
   },
   { id: 'question-types', title: 'Question Types', prefs: [Prefs.studyModeHandwriting, Prefs.studyModeReading] },
   { id: 'srs-timing', title: 'SRS Timing', prefs: [Prefs.againDelay, Prefs.hardDelay, Prefs.goodDelay, Prefs.easyDelay] },

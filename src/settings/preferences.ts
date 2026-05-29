@@ -15,6 +15,17 @@ export interface BoolPref {
   label: string;
   description?: string;
 }
+/** A pick-one-of-N preference (stored as the chosen option's string value). */
+export interface EnumPref<T extends string = string> {
+  key: string;
+  default: T;
+  label: string;
+  description?: string;
+  options: { value: T; label: string }[];
+}
+
+/** How pickReviewWord chooses which word to review for a kanji that appears in several words. */
+export type ReviewWordSelection = 'weighted' | 'random' | 'weakest';
 
 export const Prefs = {
   newCardsPerDay: { key: 'new_cards_per_day', default: 20, label: 'New cards per day', description: 'New cards introduced each day' } as NumberPref,
@@ -35,6 +46,17 @@ export const Prefs = {
   studyModeHandwriting: { key: 'study_mode_handwriting', default: true, label: 'Handwriting', description: 'Draw the kanji by hand' } as BoolPref,
   studyModeReading: { key: 'study_mode_reading', default: false, label: 'Reading', description: 'Given a word in a sentence, recall its reading' } as BoolPref,
   rateKanjiIndividually: { key: 'rate_kanji_individually', default: false, label: 'Rate kanji individually', description: 'When reviewing a word, rate each of its kanji separately instead of giving the whole word one rating' } as BoolPref,
+  reviewWordSelection: {
+    key: 'review_word_selection',
+    default: 'weighted',
+    label: 'Review word variety',
+    description: 'Which word to show when reviewing a kanji that appears in several words',
+    options: [
+      { value: 'weighted', label: 'Favor weaker words' },
+      { value: 'random', label: 'Fully random' },
+      { value: 'weakest', label: 'Weakest first' },
+    ],
+  } as EnumPref<ReviewWordSelection>,
   darkMode: { key: 'dark_mode', default: false, label: 'Dark mode', description: 'Override system theme' } as BoolPref,
   showExampleWords: { key: 'show_example_words', default: true, label: 'Show example words', description: 'Show vocabulary examples when studying or viewing kanji' } as BoolPref,
   showExampleSentences: { key: 'show_example_sentences', default: true, label: 'Show example sentences', description: 'Show example sentences when studying or viewing kanji' } as BoolPref,

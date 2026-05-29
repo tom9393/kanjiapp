@@ -4,7 +4,7 @@
 // port reproduces getSnapshot()'s correct mapping.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StudyConfigSnapshot } from '@/domain/scheduler';
-import { BoolPref, NumberPref, Prefs } from './preferences';
+import { BoolPref, EnumPref, NumberPref, Prefs, ReviewWordSelection } from './preferences';
 
 export interface StudyModesSnapshot {
   handwriting: boolean;
@@ -30,6 +30,15 @@ export async function setNumber(pref: NumberPref, value: number): Promise<void> 
 
 export async function setBoolean(pref: BoolPref, value: boolean): Promise<void> {
   await AsyncStorage.setItem(pref.key, value ? 'true' : 'false');
+}
+
+export async function getString<T extends string>(pref: EnumPref<T>): Promise<T> {
+  const raw = await AsyncStorage.getItem(pref.key);
+  return (raw as T) ?? pref.default;
+}
+
+export async function setString<T extends string>(pref: EnumPref<T>, value: T): Promise<void> {
+  await AsyncStorage.setItem(pref.key, value);
 }
 
 export async function getSnapshot(): Promise<StudyConfigSnapshot> {
@@ -114,4 +123,8 @@ export function getDecomposeToPrimitives(): Promise<boolean> {
 
 export function getRateKanjiIndividually(): Promise<boolean> {
   return getBoolean(Prefs.rateKanjiIndividually);
+}
+
+export function getReviewWordSelection(): Promise<ReviewWordSelection> {
+  return getString(Prefs.reviewWordSelection);
 }

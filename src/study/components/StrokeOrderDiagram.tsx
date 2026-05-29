@@ -19,6 +19,7 @@ import { usePalette } from '@/ui/theme';
 const STROKE_PRIOR = '#BDBDBD';
 const STROKE_CURRENT = '#D32F2F';
 const STROKE_INK = '#333333'; // colour of the animated "ink" as each stroke is drawn
+const STROKE_WIDTH = 3;
 const KVG_VIEWBOX = 109;
 const MS_PER_LENGTH = 7; // pen speed: ms spent drawing one KanjiVG length unit (constant across strokes)
 
@@ -89,6 +90,9 @@ function SteppedStrokes({ paths }: { paths: string[] }) {
 // Self-drawing diagram: one shared progress value (0 → total length) sweeps the "pen" across
 // the strokes in order. Each stroke is revealed with the SVG dash trick — a single dash as
 // long as the stroke, whose offset shrinks from the full length (hidden) to 0 (fully drawn).
+// While hidden the offset is padded by a stroke width so the dash's round end-cap parks just
+// off the path start instead of landing on it as a stray dot; the gap is widened to match so
+// the following dash never wraps back onto the stroke's end.
 function AnimatedStrokes({ paths }: { paths: string[] }) {
   const progress = useRef(new Animated.Value(0)).current;
 
@@ -127,13 +131,13 @@ function AnimatedStrokes({ paths }: { paths: string[] }) {
             d={d}
             fill="none"
             stroke={STROKE_INK}
-            strokeWidth={3}
+            strokeWidth={STROKE_WIDTH}
             strokeLinecap="round"
             strokeLinejoin="round"
-            strokeDasharray={[lengths[i], lengths[i]]}
+            strokeDasharray={[lengths[i], lengths[i] + STROKE_WIDTH * 2]}
             strokeDashoffset={progress.interpolate({
               inputRange: [offsets[i], offsets[i] + lengths[i]],
-              outputRange: [lengths[i], 0],
+              outputRange: [lengths[i] + STROKE_WIDTH, 0],
               extrapolate: 'clamp',
             })}
           />

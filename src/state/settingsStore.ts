@@ -2,23 +2,26 @@
 // Loads the editable preferences into a values map and writes each change through to
 // AsyncStorage. The View dispatches updates via updateNumber / updateBoolean.
 import { create } from 'zustand';
-import { BoolPref, NumberPref, Prefs } from '@/settings/preferences';
+import { BoolPref, EnumPref, NumberPref, Prefs } from '@/settings/preferences';
 import {
   getBoolean,
   getNumber,
+  getString,
   setBoolean,
   setNumber,
+  setString,
 } from '@/settings/settingsProvider';
 import { useThemeStore } from '@/state/themeStore';
 
-type AnyPref = NumberPref | BoolPref;
+type AnyPref = NumberPref | BoolPref | EnumPref;
 
 interface SettingsStore {
-  values: Record<string, number | boolean>;
+  values: Record<string, number | boolean | string>;
   loaded: boolean;
   load: (prefs: AnyPref[]) => Promise<void>;
   updateNumber: (pref: NumberPref, value: number) => Promise<void>;
   updateBoolean: (pref: BoolPref, value: boolean) => Promise<void>;
+  updateEnum: (pref: EnumPref, value: string) => Promise<void>;
 }
 
 export const useSettingsStore = create<SettingsStore>((set) => ({
@@ -29,9 +32,11 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
     const entries = await Promise.all(
       prefs.map(async (pref) => {
         const value =
-          typeof pref.default === 'boolean'
-            ? await getBoolean(pref as BoolPref)
-            : await getNumber(pref as NumberPref);
+          'options' in pref
+            ? await getString(pref)
+            : typeof pref.default === 'boolean'
+              ? await getBoolean(pref)
+              : await getNumber(pref);
         return [pref.key, value] as const;
       }),
     );
@@ -50,5 +55,10 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
     if (pref.key === Prefs.darkMode.key) {
       useThemeStore.getState().setDarkMode(value);
     }
+  },
+
+  updateEnum: async (pref, value) => {
+    set((s) => ({ values: { ...s.values, [pref.key]: value } }));
+    await setString(pref, value);
   },
 }));
