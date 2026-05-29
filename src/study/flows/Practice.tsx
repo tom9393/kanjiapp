@@ -18,9 +18,6 @@ export function Practice({ onFinished }: { onFinished: () => void }) {
   const [round, setRound] = useState(0);
   const p = usePalette();
   const kanji = card.card.kanji;
-  // Bumping this remounts the canvas — the idiomatic way to clear local drawing state.
-  // The round and character are also in the key, so advancing either resets the canvas too.
-  const [clearNonce, setClearNonce] = useState(0);
 
   const handleNext = () => {
     const next = round + 1;
@@ -37,14 +34,13 @@ export function Practice({ onFinished }: { onFinished: () => void }) {
         </View>
       </View>
 
-      <DrawingArea key={`${kanji.character}-${round}-${clearNonce}`} />
+      <DrawingArea key={`${kanji.character}-${round}`} />
 
       <Text style={[styles.roundLabel, { color: p.textSecondary }]}>
         Round {round + 1} of {total}
       </Text>
 
       <View style={flowStyles.bottomRow}>
-        <Btn label="Clear" variant="outlined" onPress={() => setClearNonce((n) => n + 1)} />
         <Btn label="Next" onPress={handleNext} style={flowStyles.flex1} />
       </View>
     </View>
