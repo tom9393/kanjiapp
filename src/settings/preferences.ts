@@ -27,6 +27,9 @@ export interface EnumPref<T extends string = string> {
 /** How pickReviewWord chooses which word to review for a kanji that appears in several words. */
 export type ReviewWordSelection = 'weighted' | 'random' | 'weakest';
 
+/** Layout used by the kanji browse/search screens: a chip grid or a stacked list. */
+export type KanjiView = 'grid' | 'list';
+
 export const Prefs = {
   newCardsPerDay: { key: 'new_cards_per_day', default: 20, label: 'New cards per day', description: 'New cards introduced each day' } as NumberPref,
   dailyResetHour: { key: 'daily_reset_hour', default: 0, label: 'Daily reset hour', description: 'Hour of day when daily limits reset (0–23)' } as NumberPref,
@@ -62,6 +65,25 @@ export const Prefs = {
   showExampleSentences: { key: 'show_example_sentences', default: true, label: 'Show example sentences', description: 'Show example sentences when studying or viewing kanji' } as BoolPref,
   animateStrokes: { key: 'animate_strokes', default: false, label: 'Animate strokes', description: 'Play stroke-order diagrams as an animation, drawing each stroke in order' } as BoolPref,
   decomposeToPrimitives: { key: 'decompose_to_primitives', default: false, label: 'Decompose to primitives', description: 'Break the radical tree down to atomic parts and strokes instead of stopping at known kanji' } as BoolPref,
+  // Per-screen layout toggles (not shown in the settings menu — flipped inline via ViewModeToggle).
+  kanjiBrowseView: {
+    key: 'kanji_browse_view',
+    default: 'grid',
+    label: 'Browse kanji layout',
+    options: [
+      { value: 'grid', label: 'Grid' },
+      { value: 'list', label: 'List' },
+    ],
+  } as EnumPref<KanjiView>,
+  kanjiSearchView: {
+    key: 'kanji_search_view',
+    default: 'grid',
+    label: 'Search kanji layout',
+    options: [
+      { value: 'grid', label: 'Grid' },
+      { value: 'list', label: 'List' },
+    ],
+  } as EnumPref<KanjiView>,
 } as const;
 
 /** Ported from getDailyResetMs() — the ms timestamp of the most recent daily reset boundary. */

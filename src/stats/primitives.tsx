@@ -2,15 +2,29 @@
 // small repeated pieces (cards, stat boxes, chips, dividers, legends) every section composes
 // from; each section component lives in src/stats/sections/. `shared` holds the style
 // fragments that several sections reuse so they aren't redefined per file.
+import Ionicons from '@expo/vector-icons/Ionicons';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { usePalette } from '@/ui/theme';
+import { elevation, usePalette } from '@/ui/theme';
 
-export function StatCard({ title, children }: { title: string; children: React.ReactNode }) {
+type IconName = React.ComponentProps<typeof Ionicons>['name'];
+
+export function StatCard({
+  title,
+  icon,
+  children,
+}: {
+  title: string;
+  icon?: IconName;
+  children: React.ReactNode;
+}) {
   const p = usePalette();
   return (
-    <View style={[styles.card, { backgroundColor: p.surfaceVariant }]}>
-      <Text style={[styles.cardTitle, { color: p.text }]}>{title}</Text>
+    <View style={[styles.card, { backgroundColor: p.surfaceVariant, borderColor: p.border }, elevation]}>
+      <View style={styles.cardTitleRow}>
+        {icon && <Ionicons name={icon} size={18} color={p.textSecondary} />}
+        <Text style={[styles.cardTitle, { color: p.text }]}>{title}</Text>
+      </View>
       {children}
     </View>
   );
@@ -88,8 +102,9 @@ export const shared = StyleSheet.create({
 });
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 12, marginHorizontal: 16, marginVertical: 6, padding: 16 },
-  cardTitle: { fontSize: 16, fontWeight: '600', marginBottom: 12 },
+  card: { borderRadius: 12, borderWidth: 1, marginHorizontal: 16, marginVertical: 6, padding: 16 },
+  cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
+  cardTitle: { fontSize: 16, fontWeight: '600' },
   statBox: { flex: 1, alignItems: 'center' },
   statValue: { fontSize: 24, fontWeight: '700' },
   divider: { height: StyleSheet.hairlineWidth, marginVertical: 2 },

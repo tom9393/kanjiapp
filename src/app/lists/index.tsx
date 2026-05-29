@@ -1,5 +1,6 @@
 // User study lists. Lists the user's saved lists with a row to create a new one;
 // tapping a row opens the list detail. Practice-only — sessions do not affect SRS.
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -58,7 +59,10 @@ export default function ListsIndex() {
       </View>
 
       {lists.length === 0 ? (
-        <Text style={[styles.empty, { color: p.textSecondary }]}>No lists yet. Create one above.</Text>
+        <View style={styles.emptyWrap}>
+          <Ionicons name="list-outline" size={48} color={p.textSecondary} style={styles.emptyIcon} />
+          <Text style={[styles.empty, { color: p.textSecondary }]}>No lists yet. Create one above.</Text>
+        </View>
       ) : (
         lists.map((list) => (
           <Pressable
@@ -90,7 +94,9 @@ const styles = StyleSheet.create({
   input: { flex: 1, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, fontSize: 15 },
   createBtn: { paddingHorizontal: 16, justifyContent: 'center', borderRadius: 10 },
   createLabel: { fontSize: 14, fontWeight: '600' },
-  empty: { fontSize: 14, textAlign: 'center', paddingTop: 24 },
+  emptyWrap: { alignItems: 'center', paddingTop: 32 },
+  emptyIcon: { marginBottom: 12, opacity: 0.6 },
+  empty: { fontSize: 14, textAlign: 'center' },
   row: {
     borderRadius: 10,
     borderWidth: StyleSheet.hairlineWidth,

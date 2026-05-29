@@ -9,7 +9,8 @@ import { canStudy, useFrontpageStore } from '@/state/frontpageStore';
 import { LoadRequest } from '@/state/studyStore';
 import { Divider, StatBox, StatCard, shared } from '@/stats/primitives';
 import { Btn } from '@/study/components/Btn';
-import { usePalette } from '@/ui/theme';
+import { ProgressRing } from '@/ui/ProgressRing';
+import { elevation, fontSize, radius, spacing, usePalette } from '@/ui/theme';
 
 export default function Frontpage() {
   const router = useRouter();
@@ -42,18 +43,32 @@ export default function Frontpage() {
   const todayCorrect = todayReviews - todayAgain;
   const retentionPct = todayReviews > 0 ? Math.round((todayCorrect / todayReviews) * 100) : 0;
 
+  // Today's progress = cards reviewed today vs. those still queued; full once nothing's left.
+  const remaining = dueCount + newCount;
+  const total = todayReviews + remaining;
+  const progress = total > 0 ? todayReviews / total : 0;
+
   const startStudy = (req: LoadRequest) => router.push({ pathname: '/study', params: { req: JSON.stringify(req) } });
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: p.background }]} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={[styles.streakCard, { backgroundColor: p.surfaceVariant }]}>
-          <Text style={[styles.streakLabel, { color: p.textSecondary }]}>
-            {`${streak} day streak · ${totalReviews} reviews all-time`}
-          </Text>
+        <View style={[styles.hero, { backgroundColor: p.surfaceVariant, borderColor: p.border }, elevation]}>
+          <View style={styles.heroLeft}>
+            <Text style={styles.flame}>🔥</Text>
+            <View>
+              <Text style={[styles.streakValue, { color: p.text }]}>{streak}</Text>
+              <Text style={[styles.streakLabel, { color: p.textSecondary }]}>day streak</Text>
+              <Text style={[styles.allTime, { color: p.textSecondary }]}>{`${totalReviews} reviews all-time`}</Text>
+            </View>
+          </View>
+          <ProgressRing progress={progress} color={p.primary} trackColor={p.border}>
+            <Text style={[styles.ringPct, { color: p.text }]}>{`${Math.round(progress * 100)}%`}</Text>
+            <Text style={[styles.ringLabel, { color: p.textSecondary }]}>today</Text>
+          </ProgressRing>
         </View>
 
-        <StatCard title="Today">
+        <StatCard title="Today" icon="today-outline">
           <View style={styles.statRow}>
             <StatBox label="Reviews" value={String(todayReviews)} />
             <StatBox label="New" value={String(todayNew)} />
@@ -72,7 +87,7 @@ export default function Frontpage() {
           )}
         </StatCard>
 
-        <StatCard title="Study">
+        <StatCard title="Study" icon="albums-outline">
           <Text style={[styles.count, { color: p.text }]}>{`${dueCount} cards due for review`}</Text>
           <Text style={[styles.count, { color: p.text }]}>{`${newCount} new cards to study`}</Text>
           <View style={{ height: 12 }} />
@@ -97,9 +112,23 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { alignItems: 'center', justifyContent: 'center' },
   content: { paddingVertical: 10 },
-  streakCard: { borderRadius: 12, marginHorizontal: 16, marginVertical: 6, padding: 20, alignItems: 'center' },
-  streakValue: { fontSize: 44, fontWeight: '800' },
-  streakLabel: { fontSize: 13, marginTop: 4 },
+  hero: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    marginHorizontal: spacing.lg,
+    marginVertical: spacing.sm,
+    padding: spacing.lg,
+  },
+  heroLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  flame: { fontSize: 36 },
+  streakValue: { fontSize: fontSize.hero, fontWeight: '800', lineHeight: 48 },
+  streakLabel: { fontSize: fontSize.small },
+  allTime: { fontSize: fontSize.caption, marginTop: 2 },
+  ringPct: { fontSize: fontSize.heading, fontWeight: '700' },
+  ringLabel: { fontSize: fontSize.caption },
   statRow: { flexDirection: 'row', justifyContent: 'space-evenly' },
   count: { fontSize: 16, textAlign: 'center', paddingVertical: 2 },
   note: { fontSize: 14, textAlign: 'center' },

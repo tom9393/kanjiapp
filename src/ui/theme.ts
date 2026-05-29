@@ -14,6 +14,11 @@ const light = {
   border: '#D5D7DD',
   primary: '#1F6FEB',
   onPrimary: '#FFFFFF',
+  // Semantic accents. Tuned so white text stays legible on the filled variant; used by the
+  // color-coded answer buttons (Again/Hard/Good map to danger/warning/success) and stats.
+  success: '#1E874B',
+  warning: '#C2680A',
+  danger: '#D7373F',
 };
 
 const dark = {
@@ -25,9 +30,30 @@ const dark = {
   border: '#34363B',
   primary: '#3A93F0',
   onPrimary: '#FFFFFF',
+  success: '#2EA869',
+  warning: '#C9701C',
+  danger: '#E5565B',
 };
 
 export type Palette = typeof light;
+
+// Design tokens: a small named scale so screens stop hand-picking magic numbers. New/edited
+// code should reach for these; existing screens are migrated only when they're already being
+// touched (keeps changes surgical).
+export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;
+export const radius = { sm: 8, md: 12, lg: 16, pill: 999 } as const;
+export const fontSize = { caption: 11, small: 13, body: 15, title: 16, heading: 20, hero: 44 } as const;
+
+// Card shadow. iOS reads the shadow* props; Android reads `elevation`. In dark mode the black
+// shadow is invisible against the near-black background, so cards also carry a hairline border
+// (palette.border) to define their edges — that border is what does the work in light mode too.
+export const elevation = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.1,
+  shadowRadius: 4,
+  elevation: 3,
+} as const;
 
 export function usePalette(): Palette {
   return useThemeStore((s) => s.darkMode) ? dark : light;

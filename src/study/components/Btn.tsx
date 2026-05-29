@@ -7,12 +7,15 @@ export function Btn({
   onPress,
   variant = 'filled',
   disabled = false,
+  color,
   style,
 }: {
   label: string;
   onPress: () => void;
   variant?: 'filled' | 'outlined';
   disabled?: boolean;
+  /** Overrides the filled background (e.g. the color-coded answer buttons). Ignored when outlined. */
+  color?: string;
   style?: ViewStyle;
 }) {
   const p = usePalette();
@@ -24,7 +27,7 @@ export function Btn({
         styles.btn,
         outlined
           ? { borderWidth: 1, borderColor: p.border, backgroundColor: 'transparent' }
-          : { backgroundColor: p.primary },
+          : { backgroundColor: color ?? p.primary },
         disabled && { opacity: 0.4 },
         pressed && !disabled && { opacity: 0.7 },
         style,

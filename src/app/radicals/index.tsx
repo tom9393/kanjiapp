@@ -2,7 +2,7 @@
 // Ported from kanji/view/KanjiScreen.kt's radical grid, extended with multi-select search.
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { RadicalEntry, radicals } from '@/data/radicals';
 import { getKanjiWithSrsByCharacters } from '@/data/repository/kanji';
@@ -10,6 +10,9 @@ import { frequencyRank, KanjiWithSrs, srsOf } from '@/data/types';
 import { cardStateColors, usePalette } from '@/ui/theme';
 
 const TOP_N = 12; // results shown before the user expands the box
+const CHIP = 48; // result chip size, matches styles.resultChip
+const CHIP_GAP = 6; // matches styles.resultsWrap gap
+const RESULTS_CHROME = 110; // header + toggle + show-all + box padding around the chip grid
 
 export default function RadicalBrowse() {
   const router = useRouter();
@@ -73,10 +76,17 @@ export default function RadicalBrowse() {
 
   const shown = expanded ? results : results.slice(0, TOP_N);
 
+  // Reserve the tallest the box gets while collapsed so selecting radicals fills this
+  // space instead of pushing the radical grid down. Chip columns depend on screen width.
+  const { width } = useWindowDimensions();
+  const cols = Math.max(1, Math.floor((width - 28) / (CHIP + CHIP_GAP)));
+  const rows = Math.ceil(TOP_N / cols);
+  const resultsMinHeight = RESULTS_CHROME + rows * CHIP + (rows - 1) * CHIP_GAP;
+
   return (
     <View style={[styles.fill, { backgroundColor: p.background }]}>
       <ScrollView contentContainerStyle={{ padding: 8 }}>
-        <View style={[styles.resultsBox, { backgroundColor: p.card, borderColor: p.border }]}>
+        <View style={[styles.resultsBox, { backgroundColor: p.card, borderColor: p.border, minHeight: resultsMinHeight }]}>
           <View style={styles.resultsHeader}>
             <Text style={[styles.resultsTitle, { color: p.text }]}>
               {selected.length === 0 ? 'Results' : `${results.length} kanji`}

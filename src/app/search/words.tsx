@@ -1,6 +1,7 @@
 // Word search: find words by reading, kanji form, or English meaning. Typing "shin" (→ しん)
 // surfaces 進化, 神経, …; Japanese input matches kana/kanji-form directly. Queries hit the
 // reference DB (172k words) so they are debounced; tapping a result opens the word detail.
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -54,9 +55,12 @@ export default function WordSearch() {
         />
       </View>
       {query.trim() === '' ? (
-        <Text style={[styles.note, { color: p.textSecondary }]}>
-          Search words by reading, kanji, or meaning. Latin and Japanese both work.
-        </Text>
+        <View style={styles.hint}>
+          <Ionicons name="search-outline" size={48} color={p.textSecondary} style={styles.hintIcon} />
+          <Text style={[styles.note, { color: p.textSecondary, paddingTop: 0 }]}>
+            Search words by reading, kanji, or meaning. Latin and Japanese both work.
+          </Text>
+        </View>
       ) : loading ? (
         <View style={styles.center}>
           <ActivityIndicator />
@@ -94,6 +98,8 @@ const styles = StyleSheet.create({
   searchBar: { padding: 8 },
   input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 16 },
   note: { fontSize: 14, textAlign: 'center', paddingHorizontal: 24, paddingTop: 24 },
+  hint: { alignItems: 'center', paddingTop: 32 },
+  hintIcon: { marginBottom: 12, opacity: 0.5 },
   row: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, marginTop: 6 },
   meaning: { fontSize: 14, paddingTop: 2 },
 });

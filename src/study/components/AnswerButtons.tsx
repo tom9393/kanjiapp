@@ -2,12 +2,14 @@
 import { StyleSheet, View } from 'react-native';
 import { CardEase } from '@/domain/cardState';
 import { Btn } from '@/study/components/Btn';
+import { Palette, usePalette } from '@/ui/theme';
 
-const EASES: { ease: CardEase; label: string }[] = [
-  { ease: CardEase.Again, label: 'Again' },
-  { ease: CardEase.Hard, label: 'Hard' },
-  { ease: CardEase.Good, label: 'Good' },
-  { ease: CardEase.Easy, label: 'Easy' },
+// Color-coded by difficulty so the row is read by hue (red→green), the way Anki users learn it.
+const EASES: { ease: CardEase; label: string; color: (p: Palette) => string }[] = [
+  { ease: CardEase.Again, label: 'Again', color: (p) => p.danger },
+  { ease: CardEase.Hard, label: 'Hard', color: (p) => p.warning },
+  { ease: CardEase.Good, label: 'Good', color: (p) => p.success },
+  { ease: CardEase.Easy, label: 'Easy', color: (p) => p.primary },
 ];
 
 // Answer rows (the default) keep every button filled — tapping one submits immediately. Pick rows
@@ -22,15 +24,17 @@ export function AnswerButtons({
   selected?: CardEase;
   select?: boolean;
 }) {
+  const p = usePalette();
   return (
     <View style={styles.answerRow}>
-      {EASES.map(({ ease, label }) => {
+      {EASES.map(({ ease, label, color }) => {
         const filled = selected === ease || (!select && selected === undefined);
         return (
           <Btn
             key={label}
             label={label}
             variant={filled ? 'filled' : 'outlined'}
+            color={color(p)}
             onPress={() => onAnswer(ease)}
             style={styles.flex1}
           />

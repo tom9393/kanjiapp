@@ -3,6 +3,7 @@
 // the header in React keeps it inside the same screen commit as the content, so the title
 // and back button change together instead of trailing. Mirrors the Android Material header:
 // left-aligned title, back arrow when there's somewhere to go back to.
+import Ionicons from '@expo/vector-icons/Ionicons';
 import type { NativeStackHeaderProps } from '@react-navigation/native-stack';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,12 +24,12 @@ export function AppHeader({ options, back, navigation, route }: NativeStackHeade
       <View style={styles.bar}>
         {showBack && (
           <Pressable onPress={() => navigation.goBack()} hitSlop={8} style={styles.leftButton}>
-            <Text style={[styles.backArrow, { color: p.text }]}>←</Text>
+            <Ionicons name="arrow-back" size={26} color={p.text} />
           </Pressable>
         )}
         {showMenu && (
           <Pressable onPress={openDrawer} hitSlop={8} style={styles.leftButton}>
-            <Text style={[styles.menuIcon, { color: p.text }]}>☰</Text>
+            <Ionicons name="menu" size={26} color={p.text} />
           </Pressable>
         )}
         <Text
@@ -45,8 +46,6 @@ export function AppHeader({ options, back, navigation, route }: NativeStackHeade
 const styles = StyleSheet.create({
   bar: { height: 56, flexDirection: 'row', alignItems: 'center' },
   leftButton: { paddingHorizontal: 16, height: '100%', justifyContent: 'center' },
-  backArrow: { fontSize: 26, lineHeight: 26 },
-  menuIcon: { fontSize: 24, lineHeight: 26 },
   title: { fontSize: 20, fontWeight: '500' },
   titleNoBack: { marginLeft: 16 },
 });
