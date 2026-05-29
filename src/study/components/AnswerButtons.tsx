@@ -10,12 +10,32 @@ const EASES: { ease: CardEase; label: string }[] = [
   { ease: CardEase.Easy, label: 'Easy' },
 ];
 
-export function AnswerButtons({ onAnswer }: { onAnswer: (ease: CardEase) => void }) {
+// Answer rows (the default) keep every button filled — tapping one submits immediately. Pick rows
+// (the individual word rating) pass `select`: buttons start outlined and only the chosen ease fills,
+// so the selection is visible and an unrated kanji reads as untouched.
+export function AnswerButtons({
+  onAnswer,
+  selected,
+  select,
+}: {
+  onAnswer: (ease: CardEase) => void;
+  selected?: CardEase;
+  select?: boolean;
+}) {
   return (
     <View style={styles.answerRow}>
-      {EASES.map(({ ease, label }) => (
-        <Btn key={label} label={label} onPress={() => onAnswer(ease)} style={styles.flex1} />
-      ))}
+      {EASES.map(({ ease, label }) => {
+        const filled = selected === ease || (!select && selected === undefined);
+        return (
+          <Btn
+            key={label}
+            label={label}
+            variant={filled ? 'filled' : 'outlined'}
+            onPress={() => onAnswer(ease)}
+            style={styles.flex1}
+          />
+        );
+      })}
     </View>
   );
 }

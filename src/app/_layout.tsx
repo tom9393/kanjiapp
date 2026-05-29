@@ -65,6 +65,7 @@ export default function RootLayout() {
               <Stack.Screen name="settings/index" options={{ title: 'Settings' }} />
               <Stack.Screen name="settings/[section]" options={{ title: 'Settings' }} />
               <Stack.Screen name="stats" options={{ title: 'Statistics' }} />
+              {__DEV__ && <Stack.Screen name="admin" options={{ title: 'Admin (SRS)' }} />}
             </Stack>
           </Drawer>
         ) : (

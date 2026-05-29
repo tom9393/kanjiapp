@@ -16,6 +16,8 @@ const ITEMS: { label: string; path: Href }[] = [
   { label: 'My Lists', path: '/lists' },
   { label: 'Stats', path: '/stats' },
   { label: 'Settings', path: '/settings' },
+  // Dev-only SRS admin panel; stripped from production builds (see app/admin.tsx).
+  ...(__DEV__ ? [{ label: 'Admin (SRS)', path: '/admin' as Href }] : []),
 ];
 
 export function DrawerContent({ onNavigate }: { onNavigate: () => void }) {

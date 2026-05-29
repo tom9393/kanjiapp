@@ -15,7 +15,7 @@ export const SECTIONS: Section[] = [
   {
     id: 'study',
     title: 'Study',
-    prefs: [Prefs.maxReviewsPerDay, Prefs.newCardsPerDay, Prefs.dailyResetHour, Prefs.learningRepetitions],
+    prefs: [Prefs.maxReviewsPerDay, Prefs.newCardsPerDay, Prefs.dailyResetHour, Prefs.learningRepetitions, Prefs.rateKanjiIndividually],
   },
   { id: 'question-types', title: 'Question Types', prefs: [Prefs.studyModeHandwriting, Prefs.studyModeReading] },
   { id: 'srs-timing', title: 'SRS Timing', prefs: [Prefs.againDelay, Prefs.hardDelay, Prefs.goodDelay, Prefs.easyDelay] },

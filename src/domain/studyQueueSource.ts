@@ -9,6 +9,7 @@ import {
   getDueCardsWithSrs,
   getKanjiByCharacters,
   getKanjiWithSrs,
+  getKanjiWithSrsByCharacters,
   getNewCardsWithSrs,
   getStudiedCharacters,
   type LevelField,
@@ -16,13 +17,16 @@ import {
 import { getListMembers, getListWords } from '@/data/repository/lists';
 import { getSentenceContaining, getWordsForKanji } from '@/data/repository/reference';
 import { countNewCardsStudiedToday } from '@/data/repository/reviews';
-import { frequencyRank, Kanji, KanjiWithSrs, Word } from '@/data/types';
+import { getWordStatsByIds } from '@/data/repository/wordStats';
+import { frequencyRank, Kanji, KanjiWithSrs, srsOf, Word } from '@/data/types';
+import { CardState } from '@/domain/cardState';
 import { getDailyResetMs } from '@/settings/preferences';
 import * as settings from '@/settings/settingsProvider';
-import { CardWithContext, WordWithSentence } from './models';
+import { CardWithContext, ReviewWord, WordWithSentence } from './models';
 import { formatWordReading, isKanji } from './readingFormatter';
 
 const WORD_OPTIONS_PER_CARD = 5;
+const REVIEW_WORD_CANDIDATES = 20; // words considered per due kanji before familiarity ordering
 export const CUSTOM_CHUNK_SIZE = 10;
 
 export interface CustomFilter {
@@ -93,17 +97,101 @@ export async function listCustomChunks(filter: CustomFilter): Promise<{ start: n
 export async function loadCustomChunk(filter: CustomFilter, chunkIndex: number): Promise<CardWithContext[]> {
   const sorted = await loadCustomSorted(filter);
   const start = chunkIndex * CUSTOM_CHUNK_SIZE;
-  return hydrateAll(sorted.slice(start, start + CUSTOM_CHUNK_SIZE));
+  return hydrateAll(sorted.slice(start, start + CUSTOM_CHUNK_SIZE), false);
 }
 
-async function hydrateAll(cards: KanjiWithSrs[]): Promise<CardWithContext[]> {
+// Builds the session queue. Review cards are served as a masked word (pickReviewWord); answering
+// one rates every kanji in that word, so any of those kanji that are also in this queue are
+// "consumed" — dropped here so they don't get a second card. New / learning cards are untouched.
+// wordReview is off for noSrs sessions (custom study) so they keep the original single-card
+// behaviour; SRS sessions (due/new, year) serve review cards as masked words + consume duplicates.
+async function hydrateAll(cards: KanjiWithSrs[], wordReview = true): Promise<CardWithContext[]> {
   const kanjiCache = new Map<string, Kanji>();
   const studiedChars = await getStudiedCharacters();
+  const present = new Set(cards.map((c) => c.kanji.character));
+  const consumed = new Set<string>();
   const result: CardWithContext[] = [];
   for (const card of cards) {
-    result.push(await hydrate(card, studiedChars, kanjiCache));
+    if (consumed.has(card.kanji.character)) continue;
+    const built = await buildCard(card, studiedChars, kanjiCache, wordReview);
+    result.push(built);
+    if (built.reviewWord) {
+      for (const k of built.reviewWord.constituents) {
+        if (present.has(k.kanji.character)) consumed.add(k.kanji.character);
+      }
+    }
   }
   return result;
+}
+
+// Review cards (REVIEW state) are served as a masked word when one is available; everything else
+// (new + learning + relearning, or a review kanji with no usable word) falls back to hydrate().
+async function buildCard(
+  card: KanjiWithSrs,
+  studiedChars: Set<string>,
+  kanjiCache: Map<string, Kanji>,
+  wordReview: boolean,
+): Promise<CardWithContext> {
+  if (wordReview && card.rawSrs != null && srsOf(card).type === CardState.REVIEW) {
+    const reviewWord = await pickReviewWord(card.kanji, studiedChars);
+    if (reviewWord) {
+      const { word, sentence, formattedReading } = reviewWord;
+      return {
+        card,
+        examples: [{ word, sentence, formattedReading }],
+        cardId: card.kanji.character,
+        reviewWord,
+      };
+    }
+  }
+  return hydrate(card, studiedChars, kanjiCache);
+}
+
+// Chooses the word to review for a due kanji: among words containing it whose kanji are ALL already
+// studied (so rating them is valid) and that have a usable sentence, the lowest-familiarity one wins
+// (tie-break common word, then least-recently-seen). Returns null when no such word exists.
+async function pickReviewWord(anchor: Kanji, studiedChars: Set<string>): Promise<ReviewWord | null> {
+  const candidates = await getWordsForKanji(anchor.character, REVIEW_WORD_CANDIDATES);
+  const eligible = candidates.filter((w) =>
+    [...w.kanjiForm].every((c) => !isKanji(c) || studiedChars.has(c)),
+  );
+  if (eligible.length === 0) return null;
+
+  const stats = await getWordStatsByIds(eligible.map((w) => w.id));
+  eligible.sort((a, b) => {
+    const fa = stats.get(a.id)?.familiarity ?? 0;
+    const fb = stats.get(b.id)?.familiarity ?? 0;
+    if (fa !== fb) return fa - fb; // lowest familiarity first → words missed before resurface sooner
+    if (a.common !== b.common) return a.common ? -1 : 1; // common before uncommon
+    return (stats.get(a.id)?.lastSeen ?? 0) - (stats.get(b.id)?.lastSeen ?? 0); // oldest first
+  });
+
+  for (const word of eligible) {
+    const sentence = await getSentenceContaining(word.kanjiForm, studiedChars);
+    if (!sentence) continue;
+    const constituents = await constituentCards(word.kanjiForm);
+    if (constituents.length === 0) continue;
+    const info = new Map(constituents.map((k) => [k.kanji.character, k.kanji]));
+    const formattedReading = formatWordReading(word.kanjiForm, word.kana, info);
+    return { word, sentence, formattedReading, constituents };
+  }
+  return null;
+}
+
+// The distinct kanji of a word form, in first-appearance order, each with its current SRS — the
+// units rated when the word is answered. (Duplicates like 人々 collapse to one row.)
+async function constituentCards(kanjiForm: string): Promise<KanjiWithSrs[]> {
+  const seen = new Set<string>();
+  const ordered: string[] = [];
+  for (const c of kanjiForm) {
+    if (isKanji(c) && !seen.has(c)) {
+      seen.add(c);
+      ordered.push(c);
+    }
+  }
+  const fetched = await getKanjiWithSrsByCharacters(ordered);
+  const byChar = new Map(fetched.map((k) => [k.kanji.character, k]));
+  return ordered.map((c) => byChar.get(c)).filter((k): k is KanjiWithSrs => k != null);
 }
 
 async function hydrate(

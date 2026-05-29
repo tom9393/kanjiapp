@@ -1,15 +1,18 @@
-// Review by handwriting: prompt the word/kanji, draw it, reveal + rate. Ported from
-// study/view/ReviewWritingContent.
+// Review by handwriting. Word-review cards (reviewWord) show the word as kana inside its sentence
+// and rate every kanji in it on reveal; the fallback keeps the original prompt (a word's reading +
+// kana-substituted sentence, or the bare kanji). Ported from study/view/ReviewWritingContent.
 import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useStudyStore } from '@/state/studyStore';
 import { PromptHeader } from '@/study/PromptHeader';
 import { Btn } from '@/study/components/Btn';
+import { ClozeSentence } from '@/study/components/ClozeSentence';
 import { DrawingArea } from '@/study/components/DrawingArea';
 import { MetaChips } from '@/study/components/MetaChips';
 import { Readings } from '@/study/components/Readings';
 import { RevealOverlay } from '@/study/components/RevealOverlay';
 import { SentenceCard } from '@/study/components/SentenceCard';
+import { WordReveal } from '@/study/components/WordReveal';
 import { flowStyles } from '@/study/flows/styles';
 import { usePalette } from '@/ui/theme';
 
@@ -19,17 +22,26 @@ export function ReviewWriting() {
   const [isRevealed, setIsRevealed] = useState(false);
   const undo = useStudyStore((s) => s.undo);
   const submitAnswer = useStudyStore((s) => s.submitAnswer);
+  const submitWordAnswer = useStudyStore((s) => s.submitWordAnswer);
   const canUndoCurrent = useStudyStore((s) => s.canUndoCurrent);
-  const target = useMemo(() => card.examples[0] ?? null, [card.cardId]);
   const p = usePalette();
+  const rw = card.reviewWord;
+  const target = useMemo(() => (rw ? null : card.examples[0] ?? null), [card.cardId]);
 
   return (
     <View style={flowStyles.fill}>
-      {isRevealed && (
-        <RevealOverlay kanji={card.card.kanji} sentence={target?.sentence ?? null} onAnswer={submitAnswer} />
-      )}
+      {isRevealed &&
+        (rw ? (
+          <WordReveal reviewWord={rw} onSubmit={submitWordAnswer} />
+        ) : (
+          <RevealOverlay kanji={card.card.kanji} sentence={target?.sentence ?? null} onAnswer={submitAnswer} />
+        ))}
 
-      {target ? (
+      {rw ? (
+        <PromptHeader label="Write the highlighted word">
+          <ClozeSentence sentence={rw.sentence} word={rw.word} mode="writing" />
+        </PromptHeader>
+      ) : target ? (
         <PromptHeader label="Write this word">
           <Text style={[styles.bigReading, { color: p.text }]}>{target.formattedReading}</Text>
           <SentenceCard

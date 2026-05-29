@@ -111,3 +111,7 @@ export function getAnimateStrokes(): Promise<boolean> {
 export function getDecomposeToPrimitives(): Promise<boolean> {
   return getBoolean(Prefs.decomposeToPrimitives);
 }
+
+export function getRateKanjiIndividually(): Promise<boolean> {
+  return getBoolean(Prefs.rateKanjiIndividually);
+}

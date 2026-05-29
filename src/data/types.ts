@@ -48,6 +48,16 @@ export interface ExampleSentence {
   english: string;
 }
 
+/** Per-word study stats (main DB), keyed by the reference.db word id. familiarity starts at 0
+ *  and moves ±1 per review; lower means more often missed, so it is served sooner. */
+export interface WordStat {
+  wordId: number;
+  firstSeen: number; // Unix ms
+  lastSeen: number; // Unix ms
+  timesSeen: number;
+  familiarity: number;
+}
+
 /** Mirrors room/relations/KanjiWithSrs.kt — rawSrs is null for cards never studied. */
 export interface KanjiWithSrs {
   kanji: Kanji;

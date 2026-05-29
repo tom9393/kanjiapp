@@ -80,6 +80,18 @@ CREATE TABLE IF NOT EXISTS WordListMember (
   FOREIGN KEY (listId) REFERENCES KanjiList (id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS index_WordListMember_wordId ON WordListMember (wordId);
+
+-- Per-word study stats for word-driven review. Words live in the read-only reference.db, so
+-- wordId is just an integer reference (no foreign key), like WordListMember. familiarity starts
+-- at 0 and moves ±1 per review (− when a constituent kanji was failed); it biases which word a
+-- due kanji is served — see repository/wordStats.ts.
+CREATE TABLE IF NOT EXISTS WordStat (
+  wordId INTEGER PRIMARY KEY NOT NULL,
+  firstSeen INTEGER NOT NULL,
+  lastSeen INTEGER NOT NULL,
+  timesSeen INTEGER NOT NULL,
+  familiarity INTEGER NOT NULL
+);
 `;
 
 // The prebuilt reference database, bundled in assets. It is generated offline by

@@ -34,6 +34,7 @@ export const Prefs = {
   maxReviewsPerDay: { key: 'max_reviews_per_day', default: 100, label: 'Max reviews per day', description: 'Maximum review cards shown each day' } as NumberPref,
   studyModeHandwriting: { key: 'study_mode_handwriting', default: true, label: 'Handwriting', description: 'Draw the kanji by hand' } as BoolPref,
   studyModeReading: { key: 'study_mode_reading', default: false, label: 'Reading', description: 'Given a word in a sentence, recall its reading' } as BoolPref,
+  rateKanjiIndividually: { key: 'rate_kanji_individually', default: false, label: 'Rate kanji individually', description: 'When reviewing a word, rate each of its kanji separately instead of giving the whole word one rating' } as BoolPref,
   darkMode: { key: 'dark_mode', default: false, label: 'Dark mode', description: 'Override system theme' } as BoolPref,
   showExampleWords: { key: 'show_example_words', default: true, label: 'Show example words', description: 'Show vocabulary examples when studying or viewing kanji' } as BoolPref,
   showExampleSentences: { key: 'show_example_sentences', default: true, label: 'Show example sentences', description: 'Show example sentences when studying or viewing kanji' } as BoolPref,
